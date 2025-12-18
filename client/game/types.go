@@ -20,6 +20,7 @@ type (
 		position, velocity             *util.Vector2D
 		size, rotation, frictionFactor float64
 		game                           *Game
+		aabb                           *util.AABB
 	}
 
 	PlayerCamera struct {
@@ -44,5 +45,6 @@ type (
 
 		genericObjects *SafeStorage[*GenericObject]
 		PlayerObject   *GenericObject
+		spatialHash    *util.SpatialHash[*GenericObject]
 	}
 )

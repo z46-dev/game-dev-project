@@ -11,6 +11,7 @@ func NewGame() (g *Game) {
 	g = &Game{
 		Camera:         newCamera(),
 		genericObjects: newSafeStorage[*GenericObject](),
+		spatialHash:    util.NewSpatialHash[*GenericObject](),
 	}
 
 	return
@@ -51,10 +52,16 @@ func (g *Game) Update() (err error) {
 
 	g.Camera.Update()
 
+	g.spatialHash.Clear()
+
 	g.genericObjects.Flush()
 
 	g.genericObjects.ForEach(func(o *GenericObject) {
 		o.Update()
+	})
+
+	g.genericObjects.ForEach(func(o *GenericObject) {
+		o.Collide()
 	})
 
 	return
@@ -85,4 +92,8 @@ func (g *Game) Layout(_, _ int) (w, h int) {
 func (g *Game) Init() {
 	g.PlayerObject = newGenericObject(g, util.Vector(0, 0))
 	g.genericObjects.Add(g.PlayerObject)
+
+	for i := 0; i < 10; i++ {
+		g.genericObjects.Add(newGenericObject(g, util.RandomRadius(1024)))
+	}
 }
