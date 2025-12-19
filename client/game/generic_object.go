@@ -127,7 +127,23 @@ func (o *GenericObject) resolveCollision(c *GenericObject) {
 	var prevO *util.Vector2D = o.position.Copy().Subtract(o.velocity)
 	var prevC *util.Vector2D = c.position.Copy().Subtract(c.velocity)
 	if o.velocity.SquaredMagnitude() == 0 && c.velocity.SquaredMagnitude() == 0 {
-		o.applyMTVResolution(c)
+		if resolution := util.ResolveTwoPolygons(o.polygon, c.polygon); resolution != nil {
+			var normal *util.Vector2D = resolution.Copy().Normalize()
+			const nudge float64 = 0.05
+			if o.pushability > 0 {
+				o.velocity.Add(normal.Copy().Scale(nudge))
+			}
+			if c.pushability > 0 {
+				c.velocity.Subtract(normal.Copy().Scale(nudge))
+			}
+		}
+
+		for i := 0; i < 4; i++ {
+			if !util.TwoPolygonsIntersect(o.polygon, c.polygon) {
+				break
+			}
+			o.applyMTVResolution(c)
+		}
 		return
 	}
 
@@ -169,26 +185,39 @@ func (o *GenericObject) polygonsIntersectAt(c *GenericObject, posO, posC *util.V
 }
 
 func (o *GenericObject) applyMTVResolution(c *GenericObject) {
-	var resolution *util.Vector2D = util.ResolveTwoPolygons(o.polygon, c.polygon)
-	if resolution == nil {
-		return
-	}
+	var (
+		weightO float64 = o.pushWeight()
+		weightC float64 = c.pushWeight()
+		total   float64 = weightO + weightC
+		lastMTV *util.Vector2D
+	)
 
-	var weightO float64 = o.pushWeight()
-	var weightC float64 = c.pushWeight()
-	var total float64 = weightO + weightC
 	if total == 0 {
 		return
 	}
 
-	var moveO *util.Vector2D = resolution.Copy().Scale(weightO / total)
-	var moveC *util.Vector2D = resolution.Copy().Scale(weightC / total)
-	o.position.Add(moveO)
-	c.position.Subtract(moveC)
-	o.polygon.Transform(o.position, o.size/2, o.rotation)
-	c.polygon.Transform(c.position, c.size/2, c.rotation)
+	for i := 0; i < 4; i++ {
+		var resolution *util.Vector2D = util.ResolveTwoPolygons(o.polygon, c.polygon)
+		if resolution == nil {
+			break
+		}
 
-	o.applyElasticity(c, resolution)
+		var moveO *util.Vector2D = resolution.Copy().Scale(weightO / total)
+		var moveC *util.Vector2D = resolution.Copy().Scale(weightC / total)
+		o.position.Add(moveO)
+		c.position.Subtract(moveC)
+		o.polygon.Transform(o.position, o.size/2, o.rotation)
+		c.polygon.Transform(c.position, c.size/2, c.rotation)
+
+		lastMTV = resolution
+		if !util.TwoPolygonsIntersect(o.polygon, c.polygon) {
+			break
+		}
+	}
+
+	if lastMTV != nil {
+		o.applyElasticity(c, lastMTV)
+	}
 }
 
 func (o *GenericObject) pushWeight() (weight float64) {

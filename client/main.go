@@ -34,6 +34,19 @@ func main() {
 	spinner.Start()
 	defer spinner.Stop()
 
+	// var socket *web.Socket
+	// if socket, err = web.Connect("ws://localhost:3000/ws?name=testuser"); err != nil {
+	// 	log.Panicf("Error connecting to server: %v", err)
+	// }
+
+	// defer socket.Close()
+
+	// socket.OnClose = func() {
+	// 	socket.Logger.Error("Socket closed")
+	// }
+
+	// go socket.InitiateUpdateLoop(func(message []byte) {})
+
 	if err = ebiten.RunGame(g); err != nil {
 		log.Panicf("Error running game: %v", err)
 	}

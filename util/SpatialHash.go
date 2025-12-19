@@ -23,6 +23,7 @@ func (a *AABB) GetCenter() *Vector2D {
 }
 
 type Collidable interface {
+	Identifiable
 	GetAABB() *AABB
 }
 
@@ -61,12 +62,15 @@ func (sh *SpatialHash[T]) Retrieve(aabb *AABB) (results []T) {
 	x2 := int(aabb.X2) >> SHIFT_A
 	y2 := int(aabb.Y2) >> SHIFT_A
 
+	var seen map[uint64]bool = make(map[uint64]bool)
+
 	for x := x1; x <= x2; x++ {
 		for y := y1; y <= y2; y++ {
 			key := x | (y << SHIFT_B)
 			if items, found := sh.grid[key]; found {
 				for _, item := range items {
-					if item.GetAABB().Intersects(aabb) {
+					if item.GetAABB().Intersects(aabb) && !seen[item.GetID()] {
+						seen[item.GetID()] = true
 						results = append(results, item)
 					}
 				}
