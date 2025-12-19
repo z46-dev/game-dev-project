@@ -19,8 +19,12 @@ type (
 		id                             uint64
 		position, velocity             *util.Vector2D
 		size, rotation, frictionFactor float64
+		density                        float64
+		pushability                    float64
+		elasticity                     float64
 		game                           *Game
-		aabb                           *util.AABB
+		polygon                        *util.Polygon
+		asset                          *ebiten.Image
 	}
 
 	PlayerCamera struct {

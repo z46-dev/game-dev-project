@@ -4,6 +4,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/z46-dev/game-dev-project/client/shaders"
+	"github.com/z46-dev/game-dev-project/shared"
 	"github.com/z46-dev/game-dev-project/util"
 )
 
@@ -34,20 +35,23 @@ func (g *Game) Update() (err error) {
 		g.Camera.realZoom = 128 / g.PlayerObject.size
 
 		if inpututil.IsKeyJustPressed(ebiten.KeyArrowUp) || inpututil.IsKeyJustPressed(ebiten.KeyW) {
-			g.PlayerObject.velocity.Y -= 0.5
+			g.PlayerObject.velocity.Y -= 1
 		}
 
 		if inpututil.IsKeyJustPressed(ebiten.KeyArrowDown) || inpututil.IsKeyJustPressed(ebiten.KeyS) {
-			g.PlayerObject.velocity.Y += 0.5
+			g.PlayerObject.velocity.Y += 1
 		}
 
 		if inpututil.IsKeyJustPressed(ebiten.KeyArrowLeft) || inpututil.IsKeyJustPressed(ebiten.KeyA) {
-			g.PlayerObject.velocity.X -= 0.5
+			g.PlayerObject.velocity.X -= 1
 		}
 
 		if inpututil.IsKeyJustPressed(ebiten.KeyArrowRight) || inpututil.IsKeyJustPressed(ebiten.KeyD) {
-			g.PlayerObject.velocity.X += 0.5
+			g.PlayerObject.velocity.X += 1
 		}
+
+		var _, wheelY float64 = ebiten.Wheel()
+		g.PlayerObject.rotation += wheelY * .1
 	}
 
 	g.Camera.Update()
@@ -90,10 +94,27 @@ func (g *Game) Layout(_, _ int) (w, h int) {
 }
 
 func (g *Game) Init() {
-	g.PlayerObject = newGenericObject(g, util.Vector(0, 0))
+	var rectObj *GenericObject = newGenericObject(g).Spawn(util.Vector(0, 0))
+	rectObj.size = 256
+	rectObj.pushability = 0
+	rectObj.polygon = util.NewPolygon([]*util.Vector2D{
+		util.Vector(-1, 0.1),
+		util.Vector(1, 0.1),
+		util.Vector(1, -0.1),
+		util.Vector(-1, -0.1),
+	}, rectObj.position, rectObj.rotation, rectObj.size)
+	rectObj.asset = shared.CreateAssetForPolygon(rectObj.polygon, 1024)
+	g.genericObjects.Add(rectObj)
+
+	g.PlayerObject = newGenericObject(g).SafelySpawn(func() *util.Vector2D {
+		return util.RandomRadius(1024)
+	}, 16)
+
 	g.genericObjects.Add(g.PlayerObject)
 
-	for i := 0; i < 10; i++ {
-		g.genericObjects.Add(newGenericObject(g, util.RandomRadius(1024)))
+	for i := 0; i < 64; i++ {
+		g.genericObjects.Add(newGenericObject(g).SafelySpawn(func() *util.Vector2D {
+			return util.RandomRadius(1024)
+		}, 16))
 	}
 }

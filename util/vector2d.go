@@ -81,3 +81,7 @@ func (v *Vector2D) Rotate(angle float64) *Vector2D {
 	v.Y = y
 	return v
 }
+
+func (v *Vector2D) SubtractFrom(other *Vector2D) *Vector2D {
+	return Vector(other.X-v.X, other.Y-v.Y)
+}
