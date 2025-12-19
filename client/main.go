@@ -1,8 +1,12 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/z46-dev/game-dev-project/client/game"
+	"github.com/z46-dev/game-dev-project/client/web"
+	"github.com/z46-dev/game-dev-project/shared/protocol"
 	"github.com/z46-dev/golog"
 )
 
@@ -25,27 +29,35 @@ func main() {
 	ebiten.SetWindowDecorated(false)
 
 	var (
-		g       *game.Game     = game.NewGame()
-		spinner *golog.Spinner = log.Spinner("Game is running...", golog.SpinnerRunner, 5)
+		g      *game.Game = game.NewGame()
+		socket *web.Socket
 	)
 
-	g.Init()
+	if socket, err = web.Connect("ws://localhost:3000/ws?name=testuser"); err != nil {
+		log.Panicf("Error connecting to server: %v", err)
+	}
 
-	spinner.Start()
-	defer spinner.Stop()
+	defer socket.Close()
 
-	// var socket *web.Socket
-	// if socket, err = web.Connect("ws://localhost:3000/ws?name=testuser"); err != nil {
-	// 	log.Panicf("Error connecting to server: %v", err)
-	// }
+	socket.OnClose = func() {
+		log.Error("Socket closed")
+	}
 
-	// defer socket.Close()
+	g.Socket = socket
 
-	// socket.OnClose = func() {
-	// 	socket.Logger.Error("Socket closed")
-	// }
+	go socket.InitiateUpdateLoop(func(message []byte) {
+		var (
+			reader      *protocol.Reader = protocol.NewReader(message)
+			messageType uint8            = reader.GetU8()
+		)
 
-	// go socket.InitiateUpdateLoop(func(message []byte) {})
+		switch messageType {
+		case protocol.PACKET_CLIENTBOUND_VIEW_UPDATE:
+			g.ParseViewUpdate(reader)
+		default:
+			fmt.Printf("Unknown message type: %d\n", messageType)
+		}
+	})
 
 	if err = ebiten.RunGame(g); err != nil {
 		log.Panicf("Error running game: %v", err)

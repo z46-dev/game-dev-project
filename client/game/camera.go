@@ -11,20 +11,20 @@ const MIN_DRAW_SIZE = 3
 func newCamera() *PlayerCamera {
 	return &PlayerCamera{
 		Position:     util.Vector(0, 0),
-		realPosition: util.Vector(0, 0),
+		RealPosition: util.Vector(0, 0),
 		Zoom:         1,
-		realZoom:     4,
+		RealZoom:     4,
 		Width:        1000,
 		Height:       1000,
 	}
 }
 
 func (c *PlayerCamera) Update() {
-	c.realZoom = math.Max(math.Min(c.realZoom, 5), .05)
+	c.RealZoom = math.Max(math.Min(c.RealZoom, 5), .05)
 
-	c.Position.X = util.Lerp(c.Position.X, c.realPosition.X, .1)
-	c.Position.Y = util.Lerp(c.Position.Y, c.realPosition.Y, .1)
-	c.Zoom = util.Lerp(c.Zoom, c.realZoom, .1)
+	c.Position.X = util.Lerp(c.Position.X, c.RealPosition.X, .1)
+	c.Position.Y = util.Lerp(c.Position.Y, c.RealPosition.Y, .1)
+	c.Zoom = util.Lerp(c.Zoom, c.RealZoom, .1)
 }
 
 func (c *PlayerCamera) IsInView(position *util.Vector2D, radius float64) (inView bool) {

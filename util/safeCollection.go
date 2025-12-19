@@ -60,7 +60,7 @@ func (ss *SafeStorage[T]) Get(id uint64) T {
 }
 
 // Iterates over all items in the storage and applies the provided function to each item.
-func (ss *SafeStorage[T]) Iterate(f func(T)) {
+func (ss *SafeStorage[T]) ForEach(f func(T)) {
 	ss.mu.RLock()
 	defer ss.mu.RUnlock()
 

@@ -1,72 +1,53 @@
 package game
 
 import (
+	"fmt"
+
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/z46-dev/game-dev-project/client/shaders"
 	"github.com/z46-dev/game-dev-project/shared"
+	"github.com/z46-dev/game-dev-project/shared/protocol"
 	"github.com/z46-dev/game-dev-project/util"
 )
 
 func NewGame() (g *Game) {
 	g = &Game{
-		Camera:         newCamera(),
-		genericObjects: newSafeStorage[*GenericObject](),
-		spatialHash:    util.NewSpatialHash[*GenericObject](),
+		Camera: newCamera(),
+		Ships:  make(map[uint64]*ClientShip),
 	}
 
-	return
-}
-
-func (g *Game) next() (next uint64) {
-	next = g.nextID
-	g.nextID++
 	return
 }
 
 func (g *Game) Update() (err error) {
-	g.time++
-
+	g.LocalTime++
 	var width, height int = ebiten.WindowSize()
 	g.Camera.Width, g.Camera.Height = float64(width), float64(height)
-
-	if g.PlayerObject != nil {
-		g.Camera.realPosition = g.PlayerObject.position
-		g.Camera.realZoom = 128 / g.PlayerObject.size
-
-		if inpututil.IsKeyJustPressed(ebiten.KeyArrowUp) || inpututil.IsKeyJustPressed(ebiten.KeyW) {
-			g.PlayerObject.velocity.Y -= 1
-		}
-
-		if inpututil.IsKeyJustPressed(ebiten.KeyArrowDown) || inpututil.IsKeyJustPressed(ebiten.KeyS) {
-			g.PlayerObject.velocity.Y += 1
-		}
-
-		if inpututil.IsKeyJustPressed(ebiten.KeyArrowLeft) || inpututil.IsKeyJustPressed(ebiten.KeyA) {
-			g.PlayerObject.velocity.X -= 1
-		}
-
-		if inpututil.IsKeyJustPressed(ebiten.KeyArrowRight) || inpututil.IsKeyJustPressed(ebiten.KeyD) {
-			g.PlayerObject.velocity.X += 1
-		}
-
-		var _, wheelY float64 = ebiten.Wheel()
-		g.PlayerObject.rotation += wheelY * .1
-	}
-
 	g.Camera.Update()
 
-	g.spatialHash.Clear()
+	if g.Socket != nil {
+		var flags uint8
+		if ebiten.IsKeyPressed(ebiten.KeyArrowLeft) || ebiten.IsKeyPressed(ebiten.KeyA) {
+			flags |= protocol.BITFLAG_INPUT_LEFT
+		}
+		if ebiten.IsKeyPressed(ebiten.KeyArrowRight) || ebiten.IsKeyPressed(ebiten.KeyD) {
+			flags |= protocol.BITFLAG_INPUT_RIGHT
+		}
+		if ebiten.IsKeyPressed(ebiten.KeyArrowUp) || ebiten.IsKeyPressed(ebiten.KeyW) {
+			flags |= protocol.BITFLAG_INPUT_UP
+		}
+		if ebiten.IsKeyPressed(ebiten.KeyArrowDown) || ebiten.IsKeyPressed(ebiten.KeyS) {
+			flags |= protocol.BITFLAG_INPUT_DOWN
+		}
 
-	g.genericObjects.Flush()
-
-	g.genericObjects.ForEach(func(o *GenericObject) {
-		o.Update()
-	})
-
-	g.genericObjects.ForEach(func(o *GenericObject) {
-		o.Collide()
-	})
+		if flags != g.lastInputFlags {
+			var w *protocol.Writer = new(protocol.Writer)
+			w.SetU8(protocol.PACKET_SERVERBOUND_INPUT)
+			w.SetU8(flags)
+			g.Socket.Write(w.GetBytes())
+			g.lastInputFlags = flags
+		}
+	}
 
 	return
 }
@@ -77,15 +58,21 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	screen.DrawRectShader(bounds.Dx(), bounds.Dy(), shaders.BackgroundShader, &ebiten.DrawRectShaderOptions{
 		GeoM: ebiten.GeoM{},
 		Uniforms: map[string]any{
-			"Time":       float32(g.time),
+			"Time":       float32(g.LocalTime),
 			"Camera":     []float32{float32(g.Camera.Position.X), float32(g.Camera.Position.Y), float32(g.Camera.Zoom)},
 			"ScreenSize": []float32{float32(bounds.Dx()), float32(bounds.Dy())},
 		},
 	})
 
-	g.genericObjects.ForEach(func(o *GenericObject) {
-		o.Draw(screen)
-	})
+	// g.genericObjects.ForEach(func(o *GenericObject) {
+	// 	o.Draw(screen)
+	// })
+
+	g.ShipsMu.RLock()
+	for _, ship := range g.Ships {
+		ship.Draw(g, screen)
+	}
+	g.ShipsMu.RUnlock()
 }
 
 func (g *Game) Layout(_, _ int) (w, h int) {
@@ -93,28 +80,93 @@ func (g *Game) Layout(_, _ int) (w, h int) {
 	return
 }
 
-func (g *Game) Init() {
-	var rectObj *GenericObject = newGenericObject(g).Spawn(util.Vector(0, 0))
-	rectObj.size = 256
-	rectObj.pushability = 0
-	rectObj.polygon = util.NewPolygon([]*util.Vector2D{
-		util.Vector(-1, 0.1),
-		util.Vector(1, 0.1),
-		util.Vector(1, -0.1),
-		util.Vector(-1, -0.1),
-	}, rectObj.position, rectObj.rotation, rectObj.size)
-	rectObj.asset = shared.CreateAssetForPolygon(rectObj.polygon, 1024)
-	g.genericObjects.Add(rectObj)
+func (g *Game) ParseViewUpdate(reader *protocol.Reader) {
+	g.ServerTime = int(reader.GetU32())
+	g.Camera.RealPosition.X = float64(reader.GetF32())
+	g.Camera.RealPosition.Y = float64(reader.GetF32())
+	g.Camera.RealZoom = g.Camera.Width / float64(reader.GetF32())
 
-	g.PlayerObject = newGenericObject(g).SafelySpawn(func() *util.Vector2D {
-		return util.RandomRadius(1024)
-	}, 16)
+	reader.GetU64()
 
-	g.genericObjects.Add(g.PlayerObject)
+	// Entities in View
+	for {
+		var (
+			id         uint64
+			entityType uint8
+			isNew      bool
+		)
 
-	for i := 0; i < 64; i++ {
-		g.genericObjects.Add(newGenericObject(g).SafelySpawn(func() *util.Vector2D {
-			return util.RandomRadius(1024)
-		}, 16))
+		if id = reader.GetU64(); id == 0 {
+			break
+		}
+
+		entityType = reader.GetU8()
+		isNew = reader.GetU8() == 0
+
+		switch entityType {
+		case protocol.ENTITY_TYPE_SHIP:
+			g.ParseIncomingShip(reader, id, isNew)
+		case protocol.ENTITY_TYPE_PROJECTILE:
+			if isNew {
+				// New Projectile
+				fmt.Printf("New Projectile: %d\n", id)
+			} else {
+				// Existing Projectile Update
+				fmt.Printf("Update Projectile: %d\n", id)
+			}
+		default:
+			fmt.Printf("Unknown entity type: %d\n", entityType)
+		}
+	}
+}
+
+func (g *Game) ParseIncomingShip(reader *protocol.Reader, id uint64, isNew bool) {
+	if isNew {
+		var ship *ClientShip = &ClientShip{
+			ID:       id,
+			Position: util.Vector(float64(reader.GetF32()), float64(reader.GetF32())),
+			Size:     float64(reader.GetF32()),
+			Rotation: float64(reader.GetF32()),
+			Name:     reader.GetStringUTF8(),
+		}
+
+		ship.RealPosition = ship.Position.Copy()
+		ship.RealSize = ship.Size
+		ship.RealRotation = ship.Rotation
+
+		var points []*util.Vector2D = make([]*util.Vector2D, 0, reader.GetU16())
+		for range cap(points) {
+			points = append(points, util.Vector(float64(reader.GetF32()), float64(reader.GetF32())))
+		}
+
+		ship.asset = shared.CreateAssetForPolygon(points, 1024)
+
+		g.ShipsMu.Lock()
+		g.Ships[id] = ship
+		g.ShipsMu.Unlock()
+	} else {
+		g.ShipsMu.RLock()
+		var ship *ClientShip = g.Ships[id]
+		g.ShipsMu.RUnlock()
+
+		if ship == nil {
+			fmt.Printf("Received update for unknown ship ID: %d\n", id)
+			return
+		}
+
+		var flags uint8 = reader.GetU8()
+
+		if flags&(1<<0) != 0 {
+			ship.RealPosition.X = float64(reader.GetF32())
+			ship.RealPosition.Y = float64(reader.GetF32())
+		}
+
+		if flags&(1<<1) != 0 {
+			ship.RealSize = float64(reader.GetF32())
+		}
+
+		if flags&(1<<2) != 0 {
+			ship.RealRotation = float64(reader.GetF32())
+		}
 	}
 }

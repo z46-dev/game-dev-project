@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/z46-dev/game-dev-project/server/config"
+	"github.com/z46-dev/game-dev-project/server/game"
 	"github.com/z46-dev/game-dev-project/server/web"
 	"github.com/z46-dev/game-dev-project/shared/protocol"
 	"github.com/z46-dev/golog"
@@ -73,6 +74,8 @@ func fileExists(p string) bool {
 	return !info.IsDir()
 }
 
+var g *game.Game = game.NewGame()
+
 func handleWebSocket(writer http.ResponseWriter, request *http.Request) {
 	// Set CORS headers
 	writer.Header().Set("Access-Control-Allow-Origin", "*")
@@ -119,6 +122,8 @@ func handleWebSocket(writer http.ResponseWriter, request *http.Request) {
 
 	socket.Logger.Info("Joined")
 
+	game.NewPlayer(g, socket, username)
+
 	go socket.InitiateUpdateLoop(func(message []byte) {
 		if len(message) < 1 {
 			return
@@ -135,6 +140,7 @@ func handleWebSocket(writer http.ResponseWriter, request *http.Request) {
 
 			var inputFlags uint8 = reader.GetU8()
 			socket.Logger.Debugf("Input: %b\n", inputFlags)
+			game.SetPlayerInput(g, socket.ID, inputFlags)
 		}
 	})
 }
@@ -147,6 +153,9 @@ func main() {
 	}
 
 	http.HandleFunc("/ws", handleWebSocket)
+
+	g.Init()
+	go g.BeginUpdateLoop(30)
 
 	if config.Config.WebServer.TLSDir != "" {
 		log.Info("Starting HTTPS server...")

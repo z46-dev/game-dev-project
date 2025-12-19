@@ -54,6 +54,10 @@ func (w *Writer) SetStringUTF8(value string) {
 	w.SetU8(0)
 }
 
+func (w *Writer) Append(other *Writer) {
+	w.Bytes = append(w.Bytes, other.Bytes...)
+}
+
 func (w *Writer) GetBytes() []byte {
 	return w.Bytes
 }
