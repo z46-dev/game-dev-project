@@ -14,8 +14,14 @@ var ShipTiger *Ship = NewShip(SHIP_TIGER, "Tiger", ShipClassificationFrigate, []
 	SetHullProps(3400, 2, 0.025).
 	AddEngine(NewEngine(util.Vector(-1, 0), 0.05, math.Pi, 280)).
 	AddShieldGenerator(NewShieldGenerator(util.Vector(0, 0), 0.035, 0, 140, 400, 3000, 0.1)).
-	AddTurretWeaponBank(NewTurretWeaponBank(util.Vector(0.5, 0), 0.1, 0, 300, nil, 0.01, ProjLightLaser).
-		AddWeapon(NewGun(util.Vector(0, 0), 0, 2, 0.5)))
+	AddTurretWeaponBank(NewTurretWeaponBank(util.Vector(-.25, 0), 0.175, 0, 300, nil, 0.05, ProjLightLaser).
+		AddWeapon(NewGun(util.Vector(0, 0), 0, 1.2, 0.25))).
+	AddTurretWeaponBank(NewTurretWeaponBank(util.Vector(.25, -.2), 0.1, 0, 150, nil, 0.1, ProjLightLaser).
+		AddWeapon(NewGun(util.Vector(0, -.25), 0, 1, 0.15)).
+		AddWeapon(NewGun(util.Vector(0, .25), 0, 1, 0.15))).
+	AddTurretWeaponBank(NewTurretWeaponBank(util.Vector(.25, .2), 0.1, 0, 150, nil, 0.1, ProjLightLaser).
+		AddWeapon(NewGun(util.Vector(0, -.25), 0, 1, 0.15)).
+		AddWeapon(NewGun(util.Vector(0, .25), 0, 1, 0.15)))
 
 var ShipHindenburg *Ship = NewShip(SHIP_HINDENBURG, "Hindenburg", ShipClassificationDestroyer, util.SVGPathToVector2DArray("M1-.05.35-.2.3-.15-.1-.35-.55-.35-.9-.2-.9-.15-1-.1-1 .1-.9.15-.9.2-.55.35-.1.35.3.15.35.2 1 .05Z"), 738).
 	SetHullProps(3400, 1, 0.005).

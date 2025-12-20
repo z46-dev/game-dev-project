@@ -90,9 +90,10 @@ type (
 
 	TurretInstance struct {
 		HardpointInstance
-		Cfg    *definitions.Turret
-		Guns   []*GunInstance
-		Target *Ship
+		Cfg        *definitions.Turret
+		Guns       []*GunInstance
+		TargetShip *Ship
+		Target     *util.Vector2D
 	}
 
 	ShieldGenerator struct {

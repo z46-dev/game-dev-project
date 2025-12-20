@@ -158,6 +158,16 @@ func handleWebSocket(writer http.ResponseWriter, request *http.Request) {
 			if inputFlags&protocol.BITFLAG_INPUT_RIGHT != 0 {
 				player.Body.Control.Goal.X += 1
 			}
+
+			if inputFlags&protocol.BITFLAG_MOUSE_MOVE != 0 {
+				if len(message) < 10 {
+					return
+				}
+
+				var mouseX float32 = reader.GetF32()
+				var mouseY float32 = reader.GetF32()
+				player.Body.Control.PrimaryTarget = util.Vector(float64(mouseX), float64(mouseY))
+			}
 		}
 	})
 }

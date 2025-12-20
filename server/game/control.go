@@ -38,4 +38,10 @@ func (c *Control) Update() {
 		c.Body.Velocity.X += math.Cos(c.Body.Rotation) * speed
 		c.Body.Velocity.Y += math.Sin(c.Body.Rotation) * speed
 	}
+
+	if c.PrimaryTarget != nil {
+		for _, hp := range c.Body.TurretBanks {
+			hp.Target = c.PrimaryTarget
+		}
+	}
 }

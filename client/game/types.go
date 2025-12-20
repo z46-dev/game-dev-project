@@ -56,5 +56,7 @@ type (
 		Projectiles   map[uint64]*ClientProjectile
 		ShipsMu       sync.RWMutex
 		ProjectilesMu sync.RWMutex
+
+		MousePosition *util.Vector2D
 	}
 )

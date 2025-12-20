@@ -19,4 +19,8 @@ var (
 	//go:embed background.kage.go
 	backgroundShaderSource []byte
 	BackgroundShader       *ebiten.Shader = InitShader(backgroundShaderSource)
+
+	//go:embed turret_texture.kage.go
+	turretTextureShaderSource []byte
+	TurretTextureShader       *ebiten.Shader = InitShader(turretTextureShaderSource)
 )

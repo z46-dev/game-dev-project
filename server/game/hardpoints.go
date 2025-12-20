@@ -1,8 +1,6 @@
 package game
 
 import (
-	"math"
-
 	"github.com/z46-dev/game-dev-project/shared/definitions"
 	"github.com/z46-dev/game-dev-project/util"
 )
@@ -12,12 +10,12 @@ func NewHardpoint(parent *Ship, def definitions.Hardpoint) (hp *HardpointInstanc
 		Parent:           parent,
 		Position:         util.Vector(0, 0),
 		Size:             def.Size * parent.Size,
-		FacingDir:        def.Direction + parent.Rotation,
+		FacingDir:        def.Direction,
 		Health:           NewHealth(def.HullHealth, def.CanBeRepaired, def.Rebuild),
 		RelativePosition: def.Position.Copy(),
 	}
 
-	hp.Position = parent.Position.Copy().Add(hp.RelativePosition.Copy().Rotate(parent.Rotation).Scale(parent.Size))
+	hp.Position = parent.Position.Copy().Add(hp.RelativePosition.Copy().Rotate(parent.Rotation).Scale(parent.Size / 2))
 	return
 }
 
@@ -44,7 +42,7 @@ func (hp *HardpointInstance) Update() (cont bool) {
 		return
 	}
 
-	hp.Position = hp.Parent.Position.Copy().Add(hp.RelativePosition.Copy().Rotate(hp.Parent.Rotation).Scale(hp.Parent.Size))
+	hp.Position = hp.Parent.Position.Copy().Add(hp.RelativePosition.Copy().Rotate(hp.Parent.Rotation).Scale(hp.Parent.Size / 2))
 	hp.Parent.Game.hardpointsSpatialHash.Insert(hp)
 	cont = true
 	return
@@ -85,18 +83,10 @@ func (t *TurretInstance) Update() {
 
 	var targetFacing float64 = t.Cfg.Direction
 	if t.Target != nil {
-		targetFacing = util.AngleBetween(t.Position, t.Target.Position) - t.Parent.Rotation
+		targetFacing = util.AngleBetween(t.Position, t.Target) - t.Parent.Rotation
 	}
 
-	var delta float64 = wrapAngle(targetFacing - t.FacingDir)
-	var turnSpeed float64 = math.Min(t.Cfg.TraverseRate, util.AngleDifference(t.FacingDir, targetFacing))
-	if delta > turnSpeed {
-		delta = turnSpeed
-	} else if delta < -turnSpeed {
-		delta = -turnSpeed
-	}
-
-	t.FacingDir += delta
+	t.FacingDir += min(t.Cfg.TraverseRate, max(-t.Cfg.TraverseRate, wrapAngle(targetFacing-t.FacingDir)))
 }
 
 // Engines

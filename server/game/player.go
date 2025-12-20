@@ -10,7 +10,7 @@ func NewPlayer(game *Game, socket *web.Socket, name string) (p *Player) {
 	p = &Player{
 		Socket: socket,
 		Body:   NewShip(game, util.RandomRadius(128), definitions.ShipTiger),
-		Camera: NewCamera(3000),
+		Camera: NewCamera(600),
 	}
 
 	p.Body.Name = name

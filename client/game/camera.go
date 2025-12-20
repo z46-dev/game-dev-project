@@ -3,6 +3,7 @@ package game
 import (
 	"math"
 
+	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/z46-dev/game-dev-project/util"
 )
 
@@ -35,5 +36,14 @@ func (c *PlayerCamera) IsInView(position *util.Vector2D, radius float64) (inView
 		inView = x >= -c.Width/2/c.Zoom-radius && x <= c.Width/2/c.Zoom+radius && y >= -c.Height/2/c.Zoom-radius && y <= c.Height/2/c.Zoom+radius
 	}
 
+	return
+}
+
+func (c *PlayerCamera) RealMousePosition() (realPos *util.Vector2D) {
+	var mouseX, mouseY int = ebiten.CursorPosition()
+	realPos = util.Vector(
+		c.Position.X-c.Width/(2*c.Zoom)+float64(mouseX)/c.Zoom,
+		c.Position.Y-c.Height/(2*c.Zoom)+float64(mouseY)/c.Zoom,
+	)
 	return
 }

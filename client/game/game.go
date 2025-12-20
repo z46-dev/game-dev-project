@@ -15,9 +15,10 @@ import (
 
 func NewGame() (g *Game) {
 	g = &Game{
-		Camera:      newCamera(),
-		Ships:       make(map[uint64]*ClientShip),
-		Projectiles: make(map[uint64]*ClientProjectile),
+		Camera:        newCamera(),
+		Ships:         make(map[uint64]*ClientShip),
+		Projectiles:   make(map[uint64]*ClientProjectile),
+		MousePosition: util.Vector(0, 0),
 	}
 
 	return
@@ -34,19 +35,35 @@ func (g *Game) Update() (err error) {
 		if ebiten.IsKeyPressed(ebiten.KeyArrowLeft) || ebiten.IsKeyPressed(ebiten.KeyA) {
 			flags |= protocol.BITFLAG_INPUT_LEFT
 		}
+
 		if ebiten.IsKeyPressed(ebiten.KeyArrowRight) || ebiten.IsKeyPressed(ebiten.KeyD) {
 			flags |= protocol.BITFLAG_INPUT_RIGHT
 		}
+
 		if ebiten.IsKeyPressed(ebiten.KeyArrowUp) || ebiten.IsKeyPressed(ebiten.KeyW) {
 			flags |= protocol.BITFLAG_INPUT_UP
 		}
+
 		if ebiten.IsKeyPressed(ebiten.KeyArrowDown) || ebiten.IsKeyPressed(ebiten.KeyS) {
 			flags |= protocol.BITFLAG_INPUT_DOWN
 		}
-		if flags != g.lastInputFlags {
+
+		var newMouse *util.Vector2D = g.Camera.RealMousePosition()
+		if newMouse.X != g.MousePosition.X || newMouse.Y != g.MousePosition.Y {
+			flags |= protocol.BITFLAG_MOUSE_MOVE
+			g.MousePosition = newMouse
+		}
+
+		if flags != g.lastInputFlags || (flags&protocol.BITFLAG_MOUSE_MOVE != 0) {
 			var w *protocol.Writer = new(protocol.Writer)
 			w.SetU8(protocol.PACKET_SERVERBOUND_INPUT)
 			w.SetU8(flags)
+
+			if flags&protocol.BITFLAG_MOUSE_MOVE != 0 {
+				w.SetF32(float32(g.MousePosition.X))
+				w.SetF32(float32(g.MousePosition.Y))
+			}
+
 			g.Socket.Write(w.GetBytes())
 			g.lastInputFlags = flags
 		}
