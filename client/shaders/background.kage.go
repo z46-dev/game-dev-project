@@ -8,20 +8,14 @@ var Time float      // Time in ticks
 var Camera vec3     // (x, y, zoom)
 var ScreenSize vec2 // (w, h)
 
-const Radius float = 100
-const PI = 3.141592653589793
-const TAU = 6.283185307179586
-const RADIANS_120 = 2.0943951023931953
-const RADIANS_240 = 4.1887902047863905
-
 func hash(p vec2) float {
-	return fract(sin(dot(p, vec2(127.1, 311.7))) * 32938.5453)
+	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453)
 }
 
 func noise(p vec2) float {
 	i := floor(p)
 	f := fract(p)
-	u := f * f * (vec2(3.0, 3.0) - 2.0*f)
+	u := f*f*(vec2(3.0, 3.0)-2.0*f)
 
 	return mix(
 		mix(hash(i+vec2(0.0, 0.0)), hash(i+vec2(1.0, 0.0)), u.x),
@@ -30,32 +24,54 @@ func noise(p vec2) float {
 	)
 }
 
-func fbmWithTime(p vec2, t float) float {
-	var v, a float = 0.0, 0.5
-	for i := 0; i < 4; i++ {
-		v += a * noise(p+vec2(t*0.02, t*0.04))
-		p = p*2.0 + vec2(5.2, 1.3)
+func fbm(p vec2) float {
+	var v float = 0.0
+	var a float = 0.5
+	for i := 0; i < 5; i++ {
+		v += a * noise(p)
+		p = p*2.0 + vec2(11.2, 7.4)
 		a *= 0.5
 	}
 	return v
 }
 
+func starfield(p vec2) float {
+	var grid vec2 = floor(p)
+	var h float = hash(grid)
+	var sparkle float = smoothstep(0.9975, 1.0, h)
+	var twinkle float = 0.75 + 0.25*sin(h*50.0+Time*0.02)
+	return sparkle * twinkle
+}
+
+func swirl(p vec2) vec3 {
+	var angle float = atan2(p.y, p.x)
+	var radius float = length(p)
+	var band float = sin(angle*3.0+radius*6.0-Time*0.0006)
+	var mask float = smoothstep(0.55, 0.75, band) * smoothstep(1.2, 0.4, radius)
+	return vec3(0.12, 0.04, 0.2) * mask
+}
+
 func Fragment(dstPos vec4, srcPos vec2, _ vec4) vec4 {
-    var world vec2 = (dstPos.xy-ScreenSize*0.5)/Camera.z + Camera.xy
+	var world vec2 = (dstPos.xy-ScreenSize*0.5)/Camera.z + Camera.xy
+	var uv vec2 = world * 0.002
 
-    var (
-        rel vec2 = (world) / Radius
-        d float = length(rel)
-    )
+	var base vec3 = vec3(0.02, 0.03, 0.06)
+	var nebula1 float = fbm(uv*2.0 + vec2(Time*0.0003, -Time*0.0002))
+	var nebula2 float = fbm(uv*3.5 + vec2(-Time*0.0002, Time*0.00035))
 
-    if d < 1 {
-        var hue float = (((atan2(rel.y, rel.x) + Time * 0.001) / TAU) + 0.5) * TAU
-        return vec4(0.5 + 0.5 * cos(hue), 0.5 + 0.5 * cos(hue + RADIANS_120), 0.5 + 0.5 * cos(hue + RADIANS_240), 1.0)
-    } else {
-        var (
-            n float = fbmWithTime(world*0.1, Time)
-            c vec3 = vec3(n)
-        )
-        return vec4(c, 1.0)
-    }
+	var fog vec3 = vec3(0.08, 0.02, 0.12) * nebula1
+	fog += vec3(0.02, 0.08, 0.12) * nebula2
+	fog *= 0.8
+
+	var swirlSeed vec2 = floor(world*0.0008)
+	var swirlRand float = hash(swirlSeed)
+	var swirlMask float = smoothstep(0.985, 1.0, swirlRand)
+	var swirlColor vec3 = swirl(fract(world*0.0008)*2.0-vec2(1.0, 1.0)) * swirlMask
+
+	var stars float = starfield(world*0.08)
+	var stars2 float = starfield(world*0.16) * 0.5
+	var starColor vec3 = vec3(0.9, 0.95, 1.0) * (stars + stars2)
+
+	var color vec3 = base + fog + swirlColor + starColor
+	return vec4(color, 1.0)
 }

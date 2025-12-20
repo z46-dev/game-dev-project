@@ -11,6 +11,7 @@ import (
 	"github.com/z46-dev/game-dev-project/server/game"
 	"github.com/z46-dev/game-dev-project/server/web"
 	"github.com/z46-dev/game-dev-project/shared/protocol"
+	"github.com/z46-dev/game-dev-project/util"
 	"github.com/z46-dev/golog"
 )
 
@@ -104,6 +105,7 @@ func handleWebSocket(writer http.ResponseWriter, request *http.Request) {
 
 	socket.OnClose = func() {
 		socket.Logger.Info("Disconnected")
+		game.RemovePlayer(g, socket.ID)
 	}
 
 	var username string = request.URL.Query().Get("name")
@@ -122,7 +124,7 @@ func handleWebSocket(writer http.ResponseWriter, request *http.Request) {
 
 	socket.Logger.Info("Joined")
 
-	game.NewPlayer(g, socket, username)
+	var player *game.Player = game.NewPlayer(g, socket, username)
 
 	go socket.InitiateUpdateLoop(func(message []byte) {
 		if len(message) < 1 {
@@ -139,8 +141,23 @@ func handleWebSocket(writer http.ResponseWriter, request *http.Request) {
 			}
 
 			var inputFlags uint8 = reader.GetU8()
-			socket.Logger.Debugf("Input: %b\n", inputFlags)
-			game.SetPlayerInput(g, socket.ID, inputFlags)
+			player.Body.Control.Goal = util.Vector(0, 0)
+
+			if inputFlags&protocol.BITFLAG_INPUT_UP != 0 {
+				player.Body.Control.Goal.Y -= 1
+			}
+
+			if inputFlags&protocol.BITFLAG_INPUT_DOWN != 0 {
+				player.Body.Control.Goal.Y += 1
+			}
+
+			if inputFlags&protocol.BITFLAG_INPUT_LEFT != 0 {
+				player.Body.Control.Goal.X -= 1
+			}
+
+			if inputFlags&protocol.BITFLAG_INPUT_RIGHT != 0 {
+				player.Body.Control.Goal.X += 1
+			}
 		}
 	})
 }

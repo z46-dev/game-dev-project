@@ -27,13 +27,13 @@ func (c *Camera) IsInView(aabb *util.AABB) (inside bool) {
 }
 
 func (c *Camera) SeeShip(w *protocol.Writer, o *Ship) {
-	var cache *GenericObjectCache
+	var cache *ShipCache
 	o.Game.ShipCacheMu.RLock()
 	cache = o.Game.ShipCache[o.ID]
 	o.Game.ShipCacheMu.RUnlock()
 
 	if cache == nil {
-		cache = &GenericObjectCache{}
+		cache = &ShipCache{}
 		o.Game.ShipCacheMu.Lock()
 		o.Game.ShipCache[o.ID] = cache
 		o.Game.ShipCacheMu.Unlock()
@@ -54,6 +54,59 @@ func (c *Camera) SeeShip(w *protocol.Writer, o *Ship) {
 		if cache.Rotation != o.Rotation {
 			cache.Rotation = o.Rotation
 			cache.RotChanged = true
+		}
+
+		if cache.Health != o.Health.Ratio() {
+			cache.Health = o.Health.Ratio()
+			cache.HealthChanged = true
+		}
+
+		if len(cache.Shields) != len(o.Shields) {
+			cache.ShieldsChanged = true
+			cache.Shields = make([][2]float64, len(o.Shields))
+			for i, shield := range o.Shields {
+				cache.Shields[i] = [2]float64{shield.Health.Ratio(), shield.ShieldHealth.Ratio()}
+			}
+		} else {
+			for i, shield := range o.Shields {
+				var hpRatio, shRatio float64 = shield.Health.Ratio(), shield.ShieldHealth.Ratio()
+				if cache.Shields[i][0] != hpRatio || cache.Shields[i][1] != shRatio {
+					cache.ShieldsChanged = true
+					cache.Shields[i] = [2]float64{hpRatio, shRatio}
+				}
+			}
+		}
+
+		if len(cache.Engines) != len(o.Engines) {
+			cache.EnginesChanged = true
+			cache.Engines = make([]float64, len(o.Engines))
+			for i, engine := range o.Engines {
+				cache.Engines[i] = engine.Health.Ratio()
+			}
+		} else {
+			for i, engine := range o.Engines {
+				var eRatio float64 = engine.Health.Ratio()
+				if cache.Engines[i] != eRatio {
+					cache.EnginesChanged = true
+					cache.Engines[i] = eRatio
+				}
+			}
+		}
+
+		if len(cache.Turrets) != len(o.TurretBanks) {
+			cache.TurretsChanged = true
+			cache.Turrets = make([][2]float64, len(o.TurretBanks))
+			for i, turret := range o.TurretBanks {
+				cache.Turrets[i] = [2]float64{turret.Health.Ratio(), turret.FacingDir}
+			}
+		} else {
+			for i, turret := range o.TurretBanks {
+				var hpRatio, facing float64 = turret.Health.Ratio(), turret.FacingDir
+				if cache.Turrets[i][0] != hpRatio || cache.Turrets[i][1] != facing {
+					cache.TurretsChanged = true
+					cache.Turrets[i] = [2]float64{hpRatio, facing}
+				}
+			}
 		}
 
 		cache.AsOf = o.Game.time
@@ -83,6 +136,26 @@ func (c *Camera) SeeShip(w *protocol.Writer, o *Ship) {
 				cache.New.SetF32(float32(p.X))
 				cache.New.SetF32(float32(p.Y))
 			}
+
+			cache.New.SetU8(uint8(o.Cfg.ID))
+			cache.New.SetF32(float32(o.Health.Ratio()))
+
+			cache.New.SetU8(uint8(len(cache.Shields)))
+			for _, shield := range cache.Shields {
+				cache.New.SetF32(float32(shield[0]))
+				cache.New.SetF32(float32(shield[1]))
+			}
+
+			cache.New.SetU8(uint8(len(cache.Engines)))
+			for _, engineRatio := range cache.Engines {
+				cache.New.SetF32(float32(engineRatio))
+			}
+
+			cache.New.SetU8(uint8(len(cache.Turrets)))
+			for _, turret := range cache.Turrets {
+				cache.New.SetF32(float32(turret[0]))
+				cache.New.SetF32(float32(turret[1]))
+			}
 		}
 
 		// Send new buffer
@@ -106,6 +179,22 @@ func (c *Camera) SeeShip(w *protocol.Writer, o *Ship) {
 				flags |= 1 << 2
 			}
 
+			if cache.HealthChanged {
+				flags |= 1 << 3
+			}
+
+			if cache.ShieldsChanged {
+				flags |= 1 << 4
+			}
+
+			if cache.EnginesChanged {
+				flags |= 1 << 5
+			}
+
+			if cache.TurretsChanged {
+				flags |= 1 << 6
+			}
+
 			cache.Old.SetU8(flags)
 
 			if cache.PosChanged {
@@ -119,6 +208,33 @@ func (c *Camera) SeeShip(w *protocol.Writer, o *Ship) {
 
 			if cache.RotChanged {
 				cache.Old.SetF32(float32(o.Rotation))
+			}
+
+			if cache.HealthChanged {
+				cache.Old.SetF32(float32(o.Health.Ratio()))
+			}
+
+			if cache.ShieldsChanged {
+				cache.Old.SetU8(uint8(len(cache.Shields)))
+				for _, shield := range cache.Shields {
+					cache.Old.SetF32(float32(shield[0]))
+					cache.Old.SetF32(float32(shield[1]))
+				}
+			}
+
+			if cache.EnginesChanged {
+				cache.Old.SetU8(uint8(len(cache.Engines)))
+				for _, engineRatio := range cache.Engines {
+					cache.Old.SetF32(float32(engineRatio))
+				}
+			}
+
+			if cache.TurretsChanged {
+				cache.Old.SetU8(uint8(len(cache.Turrets)))
+				for _, turret := range cache.Turrets {
+					cache.Old.SetF32(float32(turret[0]))
+					cache.Old.SetF32(float32(turret[1]))
+				}
 			}
 		}
 
@@ -172,6 +288,7 @@ func (c *Camera) SeeProjectile(w *protocol.Writer, o *Projectile) {
 		if cache.New == nil {
 			cache.New = new(protocol.Writer)
 
+			cache.New.SetU8(0)
 			cache.New.SetF32(float32(o.Position.X))
 			cache.New.SetF32(float32(o.Position.Y))
 			cache.New.SetF32(float32(o.Size))
@@ -185,6 +302,7 @@ func (c *Camera) SeeProjectile(w *protocol.Writer, o *Projectile) {
 		if cache.Old == nil {
 			cache.Old = new(protocol.Writer)
 
+			cache.Old.SetU8(1)
 			var flags uint8 = 0
 			if cache.PosChanged {
 				flags |= 1 << 0

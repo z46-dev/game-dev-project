@@ -2,14 +2,15 @@ package game
 
 import (
 	"github.com/z46-dev/game-dev-project/server/web"
+	"github.com/z46-dev/game-dev-project/shared/definitions"
 	"github.com/z46-dev/game-dev-project/util"
 )
 
 func NewPlayer(game *Game, socket *web.Socket, name string) (p *Player) {
 	p = &Player{
 		Socket: socket,
-		Body:   NewShip(game, util.RandomRadius(128)),
-		Camera: NewCamera(750),
+		Body:   NewShip(game, util.RandomRadius(128), definitions.ShipTiger),
+		Camera: NewCamera(3000),
 	}
 
 	p.Body.Name = name

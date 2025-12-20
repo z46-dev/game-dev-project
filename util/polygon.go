@@ -380,6 +380,9 @@ func ResolveTwoPolygons(p1, p2 *Polygon) (resolution *Vector2D) {
 		parts2    []*Polygon = convexParts(p2.Points)
 		bestMTV   *Vector2D  = nil
 		bestScore float64    = math.Inf(1)
+		center1   *Vector2D  = p1.AABB.GetCenter()
+		center2   *Vector2D  = p2.AABB.GetCenter()
+		delta     *Vector2D  = Vector(center2.X-center1.X, center2.Y-center1.Y)
 	)
 
 	for _, a := range parts1 {
@@ -387,6 +390,10 @@ func ResolveTwoPolygons(p1, p2 *Polygon) (resolution *Vector2D) {
 			var mtv *Vector2D = resolveTwoPolygonsConvex(a, b)
 			if mtv == nil {
 				continue
+			}
+
+			if delta.SquaredMagnitude() != 0 && mtv.Dot(delta) > 0 {
+				mtv = mtv.Copy().Scale(-1)
 			}
 
 			var score float64 = mtv.SquaredMagnitude()
@@ -405,6 +412,12 @@ func resolveTwoPolygonsConvex(p1, p2 *Polygon) (resolution *Vector2D) {
 		mtv        *Vector2D = nil
 		minOverlap float64   = math.Inf(1)
 	)
+	var (
+		center1 *Vector2D = p1.AABB.GetCenter()
+		center2 *Vector2D = p2.AABB.GetCenter()
+		delta   *Vector2D = Vector(center2.X-center1.X, center2.Y-center1.Y)
+	)
+	const eps float64 = 1e-6
 
 	var axes []*Vector2D = append(p1.GetAxes(), p2.GetAxes()...)
 	for _, axis := range axes {
@@ -414,14 +427,18 @@ func resolveTwoPolygonsConvex(p1, p2 *Polygon) (resolution *Vector2D) {
 			overlap    float64 = min(max1, max2) - max(min1, min2)
 		)
 
-		if overlap <= 0 {
+		if overlap < -eps {
 			return nil
+		}
+
+		if overlap < eps {
+			overlap = eps
 		}
 
 		if overlap < minOverlap {
 			minOverlap = overlap
 			var flip float64 = 1
-			if min1 < min2 {
+			if delta.Dot(axis) > 0 {
 				flip = -1
 			}
 

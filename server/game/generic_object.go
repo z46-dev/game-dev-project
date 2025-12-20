@@ -20,6 +20,7 @@ func NewGameObject(game *Game, position *util.Vector2D) (o *GenericObject) {
 	o.Friction = 0.9
 	o.Density = 1
 	o.Pushability = 1
+	o.Team = -int(o.ID)
 	return
 }
 

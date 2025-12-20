@@ -1,6 +1,8 @@
 package game
 
 import (
+	"math"
+
 	"github.com/z46-dev/game-dev-project/util"
 )
 
@@ -49,6 +51,11 @@ func applyMTVResolution(o, n *PolygonalCollisionPlugin) {
 			break
 		}
 
+		var maxShift float64 = min(o.Size, n.Size) * 0.5
+		if resolution.SquaredMagnitude() > maxShift*maxShift {
+			resolution.Normalize().Scale(maxShift)
+		}
+
 		var mO, mC *util.Vector2D = resolution.Copy().Scale(wO / totalW), resolution.Copy().Scale(wN / totalW)
 		o.Position.Add(mO)
 		n.Position.Subtract(mC)
@@ -73,7 +80,134 @@ func polygonsIntersectAt(o, n *PolygonalCollisionPlugin, posO, posN *util.Vector
 	return
 }
 
-func shipProjectileCollision(o *Ship, n *Projectile) {}
+func shipProjectileCollision(o *Ship, n *Projectile) {
+	if o == nil || n == nil {
+		return
+	}
+
+	if n.Parent == o || n.Team == o.Team {
+		return
+	}
+
+	var radius float64 = n.Size / 2
+	if !o.Polygon.CircleIntersects(n.Position, radius) {
+		return
+	}
+
+	var oldPos *util.Vector2D = n.Position.Copy()
+	var (
+		resolutionPoint *util.Vector2D
+		normal          *util.Vector2D
+	)
+
+	resolutionPoint, normal, _ = simpleResolveCirclePolygon(n.Position, radius, o.Polygon)
+	if resolutionPoint == nil {
+		return
+	}
+
+	n.Position = resolutionPoint.Copy()
+	var delta *util.Vector2D = resolutionPoint.Copy().Subtract(oldPos)
+	if delta.SquaredMagnitude() == 0 {
+		return
+	}
+
+	var weightShip float64 = o.PushWeight()
+	var weightProj float64 = 1
+	var total float64 = weightShip + weightProj
+	n.Position = resolutionPoint.Copy().Add(delta.Copy().Scale(weightProj / total))
+	if weightShip > 0 {
+		o.Position.Subtract(delta.Copy().Scale(weightShip / total))
+		o.Polygon.Transform(o.Position, o.Size/2, o.Rotation)
+	}
+
+	if normal != nil {
+		applyCircleBounce(o, n, normal, 0.6)
+	}
+
+	if o.Game != nil {
+		o.Game.Projectiles.Remove(n)
+	}
+}
+
+func simpleResolveCirclePolygon(pos *util.Vector2D, radius float64, poly *util.Polygon) (*util.Vector2D, *util.Vector2D, *util.Vector2D) {
+	if pos == nil || poly == nil {
+		return nil, nil, nil
+	}
+
+	var (
+		closestDistance float64 = math.Inf(1)
+		closestPoint    *util.Vector2D
+	)
+
+	var count int = len(poly.Points)
+	for i := 0; i < count; i++ {
+		var p1 *util.Vector2D = poly.Points[i]
+		var p2 *util.Vector2D = poly.Points[(i+1)%count]
+		var cp *util.Vector2D = poly.GetClosestPointOnEdge(p1, p2, pos)
+		var dist float64 = util.Distance(cp, pos)
+		if dist < closestDistance {
+			closestDistance = dist
+			closestPoint = cp
+		}
+	}
+
+	if closestPoint == nil {
+		return nil, nil, nil
+	}
+
+	var normal *util.Vector2D = pos.Copy().Subtract(closestPoint)
+	if normal.SquaredMagnitude() == 0 {
+		var center *util.Vector2D = poly.AABB.GetCenter()
+		normal = pos.Copy().Subtract(center)
+		if normal.SquaredMagnitude() == 0 {
+			return nil, nil, nil
+		}
+	}
+
+	normal.Normalize()
+	if poly.PointIsInside(pos) {
+		normal.Scale(-1)
+	}
+	const eps float64 = 0.1
+	return closestPoint.Copy().Add(normal.Copy().Scale(radius + eps)), normal, closestPoint
+}
+
+func applyCircleBounce(ship *Ship, proj *Projectile, normal *util.Vector2D, elasticity float64) {
+	if ship == nil || proj == nil || normal == nil {
+		return
+	}
+
+	normal = normal.Copy().Normalize()
+	var relVel *util.Vector2D = proj.Velocity.Copy().Subtract(ship.Velocity)
+	var velAlong float64 = relVel.Dot(normal)
+	if velAlong >= 0 {
+		return
+	}
+
+	var impulse float64 = -(1 + elasticity) * velAlong
+	proj.Velocity.Add(normal.Copy().Scale(impulse))
+
+	var invShip float64 = ship.invMass()
+	if invShip > 0 {
+		ship.Velocity.Subtract(normal.Copy().Scale(impulse * invShip))
+	}
+}
+
+func applyAngularImpulse(a, b *GenericObject, normal *util.Vector2D) {
+	if a == nil || b == nil || normal == nil {
+		return
+	}
+
+	var tangent *util.Vector2D = util.Vector(-normal.Y, normal.X)
+	var relVel *util.Vector2D = a.Velocity.Copy().Subtract(b.Velocity)
+	var tangential float64 = relVel.Dot(tangent)
+	var spin float64 = tangential * 0.001
+	if spin > 0.15 {
+		spin = 0.15
+	} else if spin < -0.15 {
+		spin = -0.15
+	}
+}
 
 func shipShipCollision(o *Ship, n *Ship) {
 	if o.Pushability == 0 && n.Pushability == 0 {
@@ -135,7 +269,52 @@ func shipShipCollision(o *Ship, n *Ship) {
 	applyMTVResolution(&o.PolygonalCollisionPlugin, &n.PolygonalCollisionPlugin)
 }
 
-func projectileProjectileCollision(o *Projectile, n *Projectile) {}
+func projectileProjectileCollision(o *Projectile, n *Projectile) {
+	if o == nil || n == nil {
+		return
+	}
+
+	var radius float64 = (o.Size + n.Size) / 2
+	if util.Distance(o.Position, n.Position) > radius {
+		return
+	}
+
+	var normal *util.Vector2D = n.Position.Copy().Subtract(o.Position)
+	var dist float64 = normal.Magnitude()
+	if dist == 0 {
+		return
+	}
+
+	normal.Normalize()
+	var overlap float64 = radius - dist
+	if overlap > 0 {
+		var correction *util.Vector2D = normal.Copy().Scale(overlap / 2)
+		o.Position.Subtract(correction)
+		n.Position.Add(correction)
+	}
+
+	applyCircleCircleImpulse(o, n, normal, 0.6)
+}
+
+func applyCircleCircleImpulse(a, b *Projectile, normal *util.Vector2D, elasticity float64) {
+	if a == nil || b == nil || normal == nil {
+		return
+	}
+
+	var relVel *util.Vector2D = b.Velocity.Copy().Subtract(a.Velocity)
+	var velAlong float64 = relVel.Dot(normal)
+	if velAlong >= 0 {
+		return
+	}
+
+	var invA float64 = 1
+	var invB float64 = 1
+	var totalInv float64 = invA + invB
+
+	var impulse float64 = -(1 + elasticity) * velAlong / totalInv
+	a.Velocity.Subtract(normal.Copy().Scale(impulse * invA))
+	b.Velocity.Add(normal.Copy().Scale(impulse * invB))
+}
 
 func collideObjects(game *Game, self CollidableObject) {
 	if game == nil {
@@ -203,28 +382,6 @@ func (pcp *PolygonalCollisionPlugin) Insert() {
 	pcp.Game.spatialHash.Insert(pcp)
 }
 
-// Ship collision
-
-func (s *Ship) GetAABB() (aabb *util.AABB) {
-	aabb = s.Polygon.AABB
-	return
-}
-
-func (s *Ship) Insert() {
-	s.Polygon.Transform(s.Position, s.Size/2, s.Rotation)
-	s.Game.spatialHash.Insert(s)
-}
-
-func (s *Ship) Update() {
-	s.Position.Add(s.Velocity)
-	s.Velocity.Scale(s.Friction)
-	s.Insert()
-}
-
-func (s *Ship) Collide() {
-	collideObjects(s.Game, s)
-}
-
 // Projectile collision
 
 func (p *Projectile) GetAABB() (aabb *util.AABB) {
@@ -239,8 +396,20 @@ func (p *Projectile) Insert() {
 }
 
 func (p *Projectile) Update() {
+	if p.PrevPosition == nil {
+		p.PrevPosition = p.Position.Copy()
+	} else {
+		p.PrevPosition.X = p.Position.X
+		p.PrevPosition.Y = p.Position.Y
+	}
 	p.Position.Add(p.Velocity)
 	p.Velocity.Scale(p.Friction)
+	if p.Range > 0 {
+		p.Range -= p.Speed
+		if p.Range <= 0 && p.Game != nil {
+			p.Game.Projectiles.Remove(p)
+		}
+	}
 	p.Insert()
 }
 
