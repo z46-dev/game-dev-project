@@ -291,11 +291,12 @@ func (g *Game) ParseIncomingProjectile(reader *protocol.Reader, id uint64, isNew
 			Size:     float64(reader.GetF32()),
 			Rotation: float64(reader.GetF32()),
 		}
+		projectile.ProjectileID = definitions.ProjectileID(reader.GetU8())
 
 		projectile.RealPosition = projectile.Position.Copy()
 		projectile.RealSize = projectile.Size
 		projectile.RealRotation = projectile.Rotation
-		projectile.asset = shared.CreateCircleAsset(projectile.Size*2, colornames.Lightsalmon)
+		projectile.asset = projectileAssetForID(projectile.ProjectileID)
 
 		g.ProjectilesMu.Lock()
 		g.Projectiles[id] = projectile

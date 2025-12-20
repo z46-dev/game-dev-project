@@ -85,3 +85,10 @@ func (v *Vector2D) Rotate(angle float64) *Vector2D {
 func (v *Vector2D) SubtractFrom(other *Vector2D) *Vector2D {
 	return Vector(other.X-v.X, other.Y-v.Y)
 }
+
+func VectorFromAngle(angle, magnitude float64) *Vector2D {
+	return &Vector2D{
+		X: math.Cos(angle) * magnitude,
+		Y: math.Sin(angle) * magnitude,
+	}
+}

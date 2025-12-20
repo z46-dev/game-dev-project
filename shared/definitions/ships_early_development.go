@@ -14,7 +14,7 @@ var ShipTiger *Ship = NewShip(SHIP_TIGER, "Tiger", ShipClassificationFrigate, []
 	SetHullProps(3400, 2, 0.025).
 	AddEngine(NewEngine(util.Vector(-1, 0), 0.05, math.Pi, 280)).
 	AddShieldGenerator(NewShieldGenerator(util.Vector(0, 0), 0.035, 0, 140, 400, 3000, 0.1)).
-	AddTurretWeaponBank(NewTurretWeaponBank(util.Vector(-.25, 0), 0.175, 0, 300, nil, 0.05, ProjLightLaser).
+	AddTurretWeaponBank(NewTurretWeaponBank(util.Vector(-.25, 0), 0.175, 0, 300, nil, 0.05, ProjHeavyLaser).
 		AddWeapon(NewGun(util.Vector(0, 0), 0, 1.2, 0.25))).
 	AddTurretWeaponBank(NewTurretWeaponBank(util.Vector(.25, -.2), 0.1, 0, 150, nil, 0.1, ProjLightLaser).
 		AddWeapon(NewGun(util.Vector(0, -.25), 0, 1, 0.15)).

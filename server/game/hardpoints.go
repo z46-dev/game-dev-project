@@ -1,6 +1,8 @@
 package game
 
 import (
+	"math/rand/v2"
+
 	"github.com/z46-dev/game-dev-project/shared/definitions"
 	"github.com/z46-dev/game-dev-project/util"
 )
@@ -56,6 +58,7 @@ func NewTurret(parent *Ship, def *definitions.Turret) (turret *TurretInstance) {
 		Cfg:               def,
 		Guns:              []*GunInstance{},
 		Target:            nil,
+		ReloadTick:        rand.IntN(def.Projectile.ReloadTicks),
 	}
 
 	for _, gunDef := range def.Guns {
@@ -64,7 +67,6 @@ func NewTurret(parent *Ship, def *definitions.Turret) (turret *TurretInstance) {
 			Direction:        gunDef.Direction,
 			RelLength:        gunDef.BarrelLength,
 			RelWidth:         gunDef.BarrelWidth,
-			Tick:             0,
 		})
 	}
 
@@ -87,6 +89,31 @@ func (t *TurretInstance) Update() {
 	}
 
 	t.FacingDir += min(t.Cfg.TraverseRate, max(-t.Cfg.TraverseRate, wrapAngle(targetFacing-t.FacingDir)))
+	t.ReloadTick++
+
+	if t.Target != nil && t.ReloadTick >= t.Cfg.Projectile.ReloadTicks {
+		for _, gun := range t.Guns {
+			var turretAngle float64 = t.RealFacing()
+			var halfTurretSize float64 = t.Size / 2
+			var gunPos *util.Vector2D = t.Position.Copy().Add(
+				gun.RelativePosition.Copy().Rotate(turretAngle).Scale(halfTurretSize),
+			)
+			var barrelAngle float64 = wrapAngle(turretAngle + gun.Direction)
+			var projectilePos *util.Vector2D = gunPos.Add(
+				util.VectorFromAngle(barrelAngle, gun.RelLength*t.Size),
+			)
+
+			var p *Projectile = NewProjectile(t.Parent.Game, t.Parent, projectilePos)
+			p.ProjectileID = t.Cfg.Projectile.ID
+			p.Size = t.Size * (gun.RelWidth * 2)
+			p.Speed = t.Cfg.Projectile.Speed
+			p.Damage = t.Cfg.Projectile.ImpactDamage
+			p.Range = t.Cfg.Projectile.Range
+			p.Velocity = util.VectorFromAngle(barrelAngle, p.Speed)
+			p.Rotation = barrelAngle
+		}
+		t.ReloadTick = 0
+	}
 }
 
 // Engines

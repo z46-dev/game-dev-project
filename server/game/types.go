@@ -85,7 +85,6 @@ type (
 		RelativePosition    *util.Vector2D
 		Direction           float64
 		RelLength, RelWidth float64
-		Tick                int
 	}
 
 	TurretInstance struct {
@@ -94,6 +93,7 @@ type (
 		Guns       []*GunInstance
 		TargetShip *Ship
 		Target     *util.Vector2D
+		ReloadTick int
 	}
 
 	ShieldGenerator struct {
@@ -120,6 +120,7 @@ type (
 
 	Projectile struct {
 		CircularCollisionPlugin
+		ProjectileID definitions.ProjectileID
 		Speed        float64
 		Range        float64
 		Damage       float64

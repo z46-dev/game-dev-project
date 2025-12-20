@@ -42,6 +42,7 @@ type (
 		ID                                     uint64
 		Position, RealPosition                 *util.Vector2D
 		Size, RealSize, Rotation, RealRotation float64
+		ProjectileID                           definitions.ProjectileID
 		asset                                  *ebiten.Image
 	}
 

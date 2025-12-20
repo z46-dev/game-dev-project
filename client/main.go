@@ -18,15 +18,14 @@ var (
 func main() {
 	log.Info("Starting...")
 
-	ebiten.SetWindowSize(ebiten.Monitor().Size())
-	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeDisabled)
 	ebiten.SetWindowTitle("CS780 Project")
 	ebiten.SetCursorMode(ebiten.CursorModeVisible)
 	ebiten.SetCursorShape(ebiten.CursorShapeDefault)
 	ebiten.SetVsyncEnabled(true)
-	ebiten.SetScreenClearedEveryFrame(true)
-	ebiten.SetFullscreen(true)
-	ebiten.SetWindowDecorated(false)
+	ebiten.SetScreenClearedEveryFrame(false)
+	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
+	// ebiten.SetFullscreen(false)
+	// ebiten.SetWindowDecorated(true)
 
 	var (
 		g      *game.Game = game.NewGame()

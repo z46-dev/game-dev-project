@@ -2,7 +2,7 @@ package game
 
 import "github.com/z46-dev/game-dev-project/util"
 
-func NewProjectile(g *Game, position *util.Vector2D) (p *Projectile) {
+func NewProjectile(g *Game, parent *Ship, position *util.Vector2D) (p *Projectile) {
 	p = &Projectile{}
 	p.GenericObject = *NewGameObject(g, position)
 	p.AABB = &util.AABB{}
@@ -12,5 +12,11 @@ func NewProjectile(g *Game, position *util.Vector2D) (p *Projectile) {
 	p.Friction = 1
 	p.Damage = 1
 	p.PrevPosition = position.Copy()
+	p.Parent = parent
+	p.Team = parent.Team
+	p.Density = 0.5
+	p.Pushability = 2
+
+	g.Projectiles.Add(p)
 	return
 }

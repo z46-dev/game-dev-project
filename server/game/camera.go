@@ -293,6 +293,7 @@ func (c *Camera) SeeProjectile(w *protocol.Writer, o *Projectile) {
 			cache.New.SetF32(float32(o.Position.Y))
 			cache.New.SetF32(float32(o.Size))
 			cache.New.SetF32(float32(o.Rotation))
+			cache.New.SetU8(uint8(o.ProjectileID))
 		}
 
 		// Send new buffer
