@@ -4,7 +4,7 @@ import (
 	"github.com/z46-dev/game-dev-project/util"
 )
 
-func NewGameObject(game *Game, position *util.Vector2D) (o *GenericObject) {
+func NewGameObject(game *Game, position *util.Vector2D, f *Faction) (o *GenericObject) {
 	o = &GenericObject{}
 
 	// Important that IDs start at 1 because the protocol uses 0 as a terminator
@@ -20,7 +20,7 @@ func NewGameObject(game *Game, position *util.Vector2D) (o *GenericObject) {
 	o.Friction = 0.9
 	o.Density = 1
 	o.Pushability = 1
-	o.Team = -int(o.ID)
+	o.Faction = f
 	return
 }
 

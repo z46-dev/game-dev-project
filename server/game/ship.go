@@ -34,9 +34,9 @@ func (hc *HealthComponent) Ratio() (ratio float64) {
 	return
 }
 
-func NewShip(g *Game, position *util.Vector2D, def *definitions.Ship) (s *Ship) {
+func NewShip(g *Game, position *util.Vector2D, def *definitions.Ship, f *Faction) (s *Ship) {
 	s = &Ship{}
-	s.GenericObject = *NewGameObject(g, position)
+	s.GenericObject = *NewGameObject(g, position, f)
 	s.Cfg = def
 	s.Name = s.Cfg.Name
 	s.Size = s.Cfg.Size
@@ -67,6 +67,7 @@ func (s *Ship) GetAABB() (aabb *util.AABB) {
 func (s *Ship) Insert() {
 	s.Polygon.Transform(s.Position, s.Size/2, s.Rotation)
 	s.Game.spatialHash.Insert(s)
+	s.Faction.ShipsSpatialHash.Insert(s)
 }
 
 func (s *Ship) Update() {
@@ -91,3 +92,5 @@ func (s *Ship) Update() {
 func (s *Ship) Collide() {
 	collideObjects(s.Game, s)
 }
+
+func (s *Ship) Think() {}

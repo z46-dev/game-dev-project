@@ -85,7 +85,7 @@ func shipProjectileCollision(o *Ship, n *Projectile) {
 		return
 	}
 
-	if n.Parent == o || n.Team == o.Team {
+	if n.Parent == o || n.Faction == o.Faction {
 		return
 	}
 
@@ -94,39 +94,42 @@ func shipProjectileCollision(o *Ship, n *Projectile) {
 		return
 	}
 
-	var oldPos *util.Vector2D = n.Position.Copy()
-	var (
-		resolutionPoint *util.Vector2D
-		normal          *util.Vector2D
-	)
+	o.Health.Damage(n.Damage)
+	n.Game.Projectiles.Remove(n)
 
-	resolutionPoint, normal, _ = simpleResolveCirclePolygon(n.Position, radius, o.Polygon)
-	if resolutionPoint == nil {
-		return
-	}
+	// var oldPos *util.Vector2D = n.Position.Copy()
+	// var (
+	// 	resolutionPoint *util.Vector2D
+	// 	normal          *util.Vector2D
+	// )
 
-	n.Position = resolutionPoint.Copy()
-	var delta *util.Vector2D = resolutionPoint.Copy().Subtract(oldPos)
-	if delta.SquaredMagnitude() == 0 {
-		return
-	}
+	// resolutionPoint, normal, _ = simpleResolveCirclePolygon(n.Position, radius, o.Polygon)
+	// if resolutionPoint == nil {
+	// 	return
+	// }
 
-	var weightShip float64 = o.PushWeight()
-	var weightProj float64 = 1
-	var total float64 = weightShip + weightProj
-	n.Position = resolutionPoint.Copy().Add(delta.Copy().Scale(weightProj / total))
-	if weightShip > 0 {
-		o.Position.Subtract(delta.Copy().Scale(weightShip / total))
-		o.Polygon.Transform(o.Position, o.Size/2, o.Rotation)
-	}
+	// n.Position = resolutionPoint.Copy()
+	// var delta *util.Vector2D = resolutionPoint.Copy().Subtract(oldPos)
+	// if delta.SquaredMagnitude() == 0 {
+	// 	return
+	// }
 
-	if normal != nil {
-		applyCircleBounce(o, n, normal, 0.6)
-	}
+	// var weightShip float64 = o.PushWeight()
+	// var weightProj float64 = 1
+	// var total float64 = weightShip + weightProj
+	// n.Position = resolutionPoint.Copy().Add(delta.Copy().Scale(weightProj / total))
+	// if weightShip > 0 {
+	// 	o.Position.Subtract(delta.Copy().Scale(weightShip / total))
+	// 	o.Polygon.Transform(o.Position, o.Size/2, o.Rotation)
+	// }
 
-	if o.Game != nil {
-		o.Game.Projectiles.Remove(n)
-	}
+	// if normal != nil {
+	// 	applyCircleBounce(o, n, normal, 0.6)
+	// }
+
+	// if o.Game != nil {
+	// 	o.Game.Projectiles.Remove(n)
+	// }
 }
 
 func simpleResolveCirclePolygon(pos *util.Vector2D, radius float64, poly *util.Polygon) (*util.Vector2D, *util.Vector2D, *util.Vector2D) {

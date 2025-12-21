@@ -1,6 +1,7 @@
 package game
 
 import (
+	"image/color"
 	"sync"
 
 	"github.com/z46-dev/game-dev-project/server/web"
@@ -19,7 +20,9 @@ type (
 
 	Game struct {
 		time                           int
-		nextID                         uint64
+		nextID, nextFactionID          uint64
+		Factions                       map[uint64]*Faction
+		FactionsMu                     sync.RWMutex
 		Ships                          *util.SafeStorage[*Ship]
 		Projectiles                    *util.SafeStorage[*Projectile]
 		spatialHash                    *util.SpatialHash[CollidableObject]
@@ -38,6 +41,13 @@ type (
 		ProjectilesSeen map[uint64]bool
 	}
 
+	Faction struct {
+		ID               uint64
+		Name             string
+		Color            color.RGBA
+		ShipsSpatialHash *util.SpatialHash[*Ship]
+	}
+
 	Player struct {
 		Socket       *web.Socket
 		Body         *Ship
@@ -45,6 +55,7 @@ type (
 		InputFlags   uint8
 		LastFireTick int
 		InputMu      sync.RWMutex
+		Faction      *Faction
 	}
 
 	// All game object should embed this either directly or through another embedded struct
@@ -53,7 +64,7 @@ type (
 		Game                                           *Game
 		Position, Velocity                             *util.Vector2D
 		Size, Rotation, Friction, Density, Pushability float64
-		Team                                           int
+		Faction                                        *Faction
 	}
 
 	CircularCollisionPlugin struct {

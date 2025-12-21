@@ -4,7 +4,7 @@ import "github.com/z46-dev/game-dev-project/util"
 
 func NewProjectile(g *Game, parent *Ship, position *util.Vector2D) (p *Projectile) {
 	p = &Projectile{}
-	p.GenericObject = *NewGameObject(g, position)
+	p.GenericObject = *NewGameObject(g, position, parent.Faction)
 	p.AABB = &util.AABB{}
 	p.Size = 64
 	p.Speed = 5
@@ -13,7 +13,6 @@ func NewProjectile(g *Game, parent *Ship, position *util.Vector2D) (p *Projectil
 	p.Damage = 1
 	p.PrevPosition = position.Copy()
 	p.Parent = parent
-	p.Team = parent.Team
 	p.Density = 0.5
 	p.Pushability = 2
 

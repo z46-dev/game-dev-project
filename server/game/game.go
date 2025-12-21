@@ -18,14 +18,16 @@ func NewGame() (g *Game) {
 		ShipCache:             make(map[uint64]*ShipCache),
 		ProjectileCache:       make(map[uint64]*GenericObjectCache),
 		Players:               make(map[int]*Player),
+		Factions:              make(map[uint64]*Faction),
 	}
 
 	return
 }
 
 func (g *Game) Init() {
+	var npcFaction *Faction = NewFaction(g, "NPCs")
 	for range 3 {
-		var ship *Ship = NewShip(g, util.RandomRadius(4096), definitions.ShipHindenburg)
+		var ship *Ship = NewShip(g, util.RandomRadius(4096), definitions.ShipHindenburg, npcFaction)
 		g.Ships.Add(ship)
 	}
 }
@@ -36,6 +38,9 @@ func (g *Game) Update() {
 	// Update spatial hash
 	g.spatialHash.Clear()
 	g.hardpointsSpatialHash.Clear()
+	for _, f := range g.Factions {
+		f.Update()
+	}
 
 	// Flush storages
 	g.Ships.Flush()
@@ -53,6 +58,7 @@ func (g *Game) Update() {
 	// Collision phase
 	g.Ships.ForEach(func(s *Ship) {
 		s.Collide()
+		s.Think()
 	})
 
 	g.Projectiles.ForEach(func(p *Projectile) {
