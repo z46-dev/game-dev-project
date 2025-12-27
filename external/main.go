@@ -42,10 +42,10 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			"ScreenSize":    []float32{float32(bounds.Dx()), float32(bounds.Dy())},
 			"StarCenter":    []float32{float32(bounds.Dx()) / 2.0, float32(bounds.Dy()) / 2.0},
 			"StarRadius":    float32(220.0),
-			"StarIntensity": float32(1.15),
+			"StarIntensity": float32(1),
 			"StarColor":     []float32{0.3, 0.6, 1.0},
-			"StarPulse":     float32(1.1),
-			"StarDetail":    float32(1.6),
+			"StarPulse":     float32(5),
+			"StarDetail":    float32(2),
 		},
 	})
 }
