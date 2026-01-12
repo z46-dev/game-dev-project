@@ -29,7 +29,7 @@ func (c *Control) Update() {
 		var (
 			angleToGoal      float64 = c.Goal.Direction()
 			delta            float64 = wrapAngle(angleToGoal - c.Body.Rotation)
-			speed, turnSpeed float64 = c.Body.Cfg.Speed * .25, c.Body.Cfg.TurnSpeed //math.Min(c.Body.Cfg.TurnSpeed, util.AngleDifference(c.Body.Rotation, angleToGoal))
+			speed, turnSpeed float64 = c.Body.Cfg.Speed / 120, c.Body.Cfg.TurnSpeed //math.Min(c.Body.Cfg.TurnSpeed, util.AngleDifference(c.Body.Rotation, angleToGoal))
 		)
 
 		delta = min(turnSpeed, max(-turnSpeed, delta))
@@ -37,11 +37,5 @@ func (c *Control) Update() {
 
 		c.Body.Velocity.X += math.Cos(c.Body.Rotation) * speed
 		c.Body.Velocity.Y += math.Sin(c.Body.Rotation) * speed
-	}
-
-	if c.PrimaryTarget != nil {
-		for _, hp := range c.Body.TurretBanks {
-			hp.Target = c.PrimaryTarget
-		}
 	}
 }

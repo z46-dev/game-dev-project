@@ -25,5 +25,4 @@ const (
 const (
 	ENTITY_TYPE_DEFAULT uint8 = iota
 	ENTITY_TYPE_SHIP
-	ENTITY_TYPE_PROJECTILE
 )

@@ -1,31 +1,215 @@
 package definitions
 
 import (
-	"math"
-
 	"github.com/z46-dev/game-dev-project/util"
 )
 
-var ShipTiger *Ship = NewShip(SHIP_TIGER, "Tiger", ShipClassificationFrigate, []*util.Vector2D{
-	util.Vector(1.0, 0.0), util.Vector(0.3, 0.85), util.Vector(-0.15, 0.6),
-	util.Vector(-0.9, 0.8), util.Vector(-0.55, 0.0), util.Vector(-0.9, -0.8),
-	util.Vector(-0.15, -0.6), util.Vector(0.3, -0.85),
-}, 210).
-	SetHullProps(3400, 2, 0.025).
-	AddEngine(NewEngine(util.Vector(-1, 0), 0.05, math.Pi, 280)).
-	AddShieldGenerator(NewShieldGenerator(util.Vector(0, 0), 0.035, 0, 140, 400, 3000, 0.1)).
-	AddTurretWeaponBank(NewTurretWeaponBank(util.Vector(-.25, 0), 0.175, 0, 300, nil, 0.05, ProjHeavyLaser).
-		AddWeapon(NewGun(util.Vector(0, 0), 0, 1.2, 0.25))).
-	AddTurretWeaponBank(NewTurretWeaponBank(util.Vector(.25, -.2), 0.1, 0, 150, nil, 0.1, ProjLightLaser).
-		AddWeapon(NewGun(util.Vector(0, -.25), 0, 1, 0.15)).
-		AddWeapon(NewGun(util.Vector(0, .25), 0, 1, 0.15))).
-	AddTurretWeaponBank(NewTurretWeaponBank(util.Vector(.25, .2), 0.1, 0, 150, nil, 0.1, ProjLightLaser).
-		AddWeapon(NewGun(util.Vector(0, -.25), 0, 1, 0.15)).
-		AddWeapon(NewGun(util.Vector(0, .25), 0, 1, 0.15)))
+var ColossusTorpedoSquadron *Squadron = NewSquadron(
+	PlaneFaireyBarracudaMkV,
+	NewPlaneAmmo(0).WithTorpedo(&PlaneAmmoTorpedo{}),
+).SetStrikeProps(true, false, 6, 3, 0).SetHangarProps(14, 0, 0, 0, 0)
 
-var ShipHindenburg *Ship = NewShip(SHIP_HINDENBURG, "Hindenburg", ShipClassificationDestroyer, util.SVGPathToVector2DArray("M1-.05.35-.2.3-.15-.1-.35-.55-.35-.9-.2-.9-.15-1-.1-1 .1-.9.15-.9.2-.55.35-.1.35.3.15.35.2 1 .05Z"), 738).
-	SetHullProps(3400, 1, 0.005).
-	AddEngine(NewEngine(util.Vector(-1, 0), 0.05, math.Pi, 280)).
-	AddShieldGenerator(NewShieldGenerator(util.Vector(0, 0), 0.035, 0, 140, 400, 3000, 0.1)).
-	AddTurretWeaponBank(NewTurretWeaponBank(util.Vector(0.5, 0), 0.1, 0, 300, nil, 0.01, ProjHeavyLaser).
-		AddWeapon(NewGun(util.Vector(0, 0), 0, 2, 0.5)))
+var ColossusBomberSquadron *Squadron = NewSquadron(
+	PlaneFaireyBarracudaMkV,
+	NewPlaneAmmo(0).WithBomb(&PlaneAmmoBomb{}),
+).SetStrikeProps(true, false, 9, 3, 0).SetHangarProps(22, 0, 0, 0, 0)
+
+var ShipColossus *Ship = NewShip(SHIP_COLOSSUS, "Colossus", ShipClassificationCarrier, []*util.Vector2D{
+	util.Vector(1, -0.097),
+	util.Vector(0.716, -0.117),
+	util.Vector(0.664, -0.119),
+	util.Vector(0.646, -0.155),
+	util.Vector(0.586, -0.157),
+	util.Vector(0.57, -0.125),
+	util.Vector(0.014, -0.145),
+	util.Vector(0.01, -0.165),
+	util.Vector(-0.042, -0.167),
+	util.Vector(-0.05, -0.141),
+	util.Vector(-0.112, -0.139),
+	util.Vector(-0.124, -0.163),
+	util.Vector(-0.184, -0.167),
+	util.Vector(-0.188, -0.143),
+	util.Vector(-0.302, -0.139),
+	util.Vector(-0.316, -0.167),
+	util.Vector(-0.384, -0.167),
+	util.Vector(-0.386, -0.133),
+	util.Vector(-0.482, -0.137),
+	util.Vector(-0.488, -0.167),
+	util.Vector(-0.624, -0.161),
+	util.Vector(-0.632, -0.125),
+	util.Vector(-0.834, -0.123),
+	util.Vector(-0.948, -0.101),
+	util.Vector(-0.992, -0.061),
+	util.Vector(-0.99, 0.093),
+	util.Vector(-0.932, 0.133),
+	util.Vector(-0.836, 0.143),
+	util.Vector(-0.826, 0.161),
+	util.Vector(-0.626, 0.159),
+	util.Vector(-0.618, 0.181),
+	util.Vector(-0.514, 0.181),
+	util.Vector(-0.502, 0.159),
+	util.Vector(-0.396, 0.157),
+	util.Vector(-0.382, 0.173),
+	util.Vector(-0.326, 0.177),
+	util.Vector(-0.316, 0.159),
+	util.Vector(0.564, 0.143),
+	util.Vector(0.582, 0.173),
+	util.Vector(0.646, 0.171),
+	util.Vector(0.662, 0.143),
+	util.Vector(0.996, 0.111),
+}, 212, "colossus.png").
+	SetHullProps(47600, 25, 890).
+	AddSquadron(
+		NewSquadron(PlaneVoughtCorsairMkIV, NewPlaneAmmo(5).WithRocket(&PlaneAmmoRocket{
+			DamageSource: DamageSource{
+				FullDamage:  3400,
+				Penetration: 60,
+			},
+			EllipticalReticle: EllipticalReticle{
+				Distance: 800,
+				Width:    120,
+				Height:   40,
+			},
+			Speed: 384,
+		})).
+			SetStrikeProps(false, false, 9, 3, 90).
+			SetHangarProps(14, 30, 15, 15, 30*60),
+	).
+	AddSquadron(
+        NewSquadron(PlaneFaireyBarracudaMkV, NewPlaneAmmo(0).WithTorpedo(&PlaneAmmoTorpedo{})).
+    SetStrikeProps(true, false, 6, 3, 0).SetHangarProps(14, 0, 0, 0, 0)).
+	AddSquadron(ColossusBomberSquadron)
+
+var ShipEnterprise *Ship = NewShip(SHIP_ENTERPRISE, "Enterprise", ShipClassificationCarrier, []*util.Vector2D{
+	util.Vector(0.997, -0.091),
+	util.Vector(0.813, -0.111),
+	util.Vector(0.645, -0.125),
+	util.Vector(0.605, -0.125),
+	util.Vector(0.601, -0.141),
+	util.Vector(-0.433, -0.143),
+	util.Vector(-0.461, -0.131),
+	util.Vector(-0.547, -0.127),
+	util.Vector(-0.607, -0.143),
+	util.Vector(-0.757, -0.137),
+	util.Vector(-0.809, -0.123),
+	util.Vector(-0.997, -0.135),
+	util.Vector(-1.001, 0.129),
+	util.Vector(-0.267, 0.145),
+	util.Vector(-0.225, 0.149),
+	util.Vector(0.439, 0.147),
+	util.Vector(0.457, 0.137),
+	util.Vector(0.827, 0.133),
+	util.Vector(0.831, 0.123),
+	util.Vector(0.997, 0.117),
+}, 251.38, "enterprise.png").
+	SetHullProps(51400, 32.5, 1070)
+
+var ShipChkalov *Ship = NewShip(SHIP_CHKALOV, "Chkalov", ShipClassificationCarrier, []*util.Vector2D{
+	util.Vector(0.998, -0.083),
+	util.Vector(0.816, -0.101),
+	util.Vector(0.512, -0.115),
+	util.Vector(0.476, -0.135),
+	util.Vector(0.432, -0.129),
+	util.Vector(0.416, -0.115),
+	util.Vector(0.328, -0.115),
+	util.Vector(0.292, -0.135),
+	util.Vector(0.256, -0.111),
+	util.Vector(0.216, -0.109),
+	util.Vector(0.194, -0.121),
+	util.Vector(0.114, -0.121),
+	util.Vector(0.104, -0.111),
+	util.Vector(-0.18, -0.107),
+	util.Vector(-0.19, -0.133),
+	util.Vector(-0.214, -0.119),
+	util.Vector(-0.352, -0.113),
+	util.Vector(-0.39, -0.129),
+	util.Vector(-0.412, -0.113),
+	util.Vector(-0.508, -0.107),
+	util.Vector(-0.552, -0.133),
+	util.Vector(-0.598, -0.115),
+	util.Vector(-0.846, -0.113),
+	util.Vector(-1, -0.099),
+	util.Vector(-0.998, 0.111),
+	util.Vector(-0.852, 0.133),
+	util.Vector(-0.606, 0.137),
+	util.Vector(-0.556, 0.165),
+	util.Vector(-0.518, 0.141),
+	util.Vector(-0.456, 0.135),
+	util.Vector(-0.412, 0.153),
+	util.Vector(-0.326, 0.141),
+	util.Vector(-0.304, 0.155),
+	util.Vector(-0.234, 0.155),
+	util.Vector(-0.216, 0.137),
+	util.Vector(-0.176, 0.139),
+	util.Vector(-0.15, 0.149),
+	util.Vector(0.068, 0.153),
+	util.Vector(0.116, 0.141),
+	util.Vector(0.134, 0.153),
+	util.Vector(0.206, 0.153),
+	util.Vector(0.218, 0.141),
+	util.Vector(0.256, 0.137),
+	util.Vector(0.296, 0.161),
+	util.Vector(0.332, 0.147),
+	util.Vector(0.42, 0.139),
+	util.Vector(0.456, 0.165),
+	util.Vector(0.514, 0.143),
+	util.Vector(0.794, 0.139),
+	util.Vector(0.996, 0.113),
+}, 224, "chkalov.png").
+	SetHullProps(51700, 3.3, 1040)
+
+var ShipParseval *Ship = NewShip(SHIP_PARSEVAL, "August Von Parseval", ShipClassificationCarrier, []*util.Vector2D{
+	util.Vector(0.998, -0.055),
+	util.Vector(0.816, -0.077),
+	util.Vector(0.656, -0.101),
+	util.Vector(0.522, -0.123),
+	util.Vector(0.496, -0.153),
+	util.Vector(0.472, -0.123),
+	util.Vector(0.424, -0.127),
+	util.Vector(0.404, -0.147),
+	util.Vector(0.378, -0.125),
+	util.Vector(0.262, -0.125),
+	util.Vector(0.242, -0.149),
+	util.Vector(0.208, -0.127),
+	util.Vector(0.17, -0.127),
+	util.Vector(0.142, -0.153),
+	util.Vector(0.118, -0.125),
+	util.Vector(0.048, -0.127),
+	util.Vector(0.032, -0.147),
+	util.Vector(0, -0.129),
+	util.Vector(-0.232, -0.123),
+	util.Vector(-0.268, -0.151),
+	util.Vector(-0.292, -0.121),
+	util.Vector(-0.426, -0.129),
+	util.Vector(-0.456, -0.149),
+	util.Vector(-0.482, -0.125),
+	util.Vector(-0.726, -0.123),
+	util.Vector(-0.75, -0.139),
+	util.Vector(-0.776, -0.121),
+	util.Vector(-0.878, -0.117),
+	util.Vector(-0.99, -0.069),
+	util.Vector(-1, 0.087),
+	util.Vector(-0.894, 0.113),
+	util.Vector(-0.878, 0.135),
+	util.Vector(-0.78, 0.141),
+	util.Vector(-0.756, 0.157),
+	util.Vector(-0.732, 0.139),
+	util.Vector(-0.49, 0.143),
+	util.Vector(-0.464, 0.163),
+	util.Vector(-0.446, 0.145),
+	util.Vector(-0.294, 0.143),
+	util.Vector(-0.274, 0.163),
+	util.Vector(-0.25, 0.145),
+	util.Vector(0.11, 0.147),
+	util.Vector(0.146, 0.161),
+	util.Vector(0.162, 0.145),
+	util.Vector(0.19, 0.147),
+	util.Vector(0.21, 0.165),
+	util.Vector(0.236, 0.147),
+	util.Vector(0.306, 0.143),
+	util.Vector(0.326, 0.159),
+	util.Vector(0.348, 0.143),
+	util.Vector(0.73, 0.141),
+	util.Vector(0.998, 0.089),
+}, 233, "parseval.png").
+	SetHullProps(50000, 31.8, 1140)

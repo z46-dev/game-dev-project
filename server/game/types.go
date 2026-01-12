@@ -24,9 +24,8 @@ type (
 		Factions                       map[uint64]*Faction
 		FactionsMu                     sync.RWMutex
 		Ships                          *util.SafeStorage[*Ship]
-		Projectiles                    *util.SafeStorage[*Projectile]
+		Planes                         *util.SafeStorage[*Plane]
 		spatialHash                    *util.SpatialHash[CollidableObject]
-		hardpointsSpatialHash          *util.SpatialHash[*HardpointInstance]
 		ShipCache                      map[uint64]*ShipCache
 		ProjectileCache                map[uint64]*GenericObjectCache
 		ShipCacheMu, ProjectileCacheMu sync.RWMutex
@@ -80,63 +79,18 @@ type (
 	HealthComponent struct {
 		Health, MaxHealth float64
 		CanBeRepaired     bool
-		Rebuild           *definitions.RebirthConfig
-	}
-
-	HardpointInstance struct {
-		Parent           *Ship
-		Position         *util.Vector2D
-		Size             float64
-		FacingDir        float64
-		Health           *HealthComponent
-		RelativePosition *util.Vector2D
-	}
-
-	GunInstance struct {
-		RelativePosition    *util.Vector2D
-		Direction           float64
-		RelLength, RelWidth float64
-	}
-
-	TurretInstance struct {
-		HardpointInstance
-		Cfg        *definitions.Turret
-		Guns       []*GunInstance
-		TargetShip *Ship
-		Target     *util.Vector2D
-		ReloadTick int
-	}
-
-	ShieldGenerator struct {
-		HardpointInstance
-		ShieldRadius float64
-		ShieldHealth *HealthComponent
-		ShieldRegen  float64
-	}
-
-	EngineInstance struct {
-		HardpointInstance
 	}
 
 	Ship struct {
 		PolygonalCollisionPlugin
-		Name        string
-		Cfg         *definitions.Ship
-		Health      *HealthComponent
-		Shields     []*ShieldGenerator
-		Engines     []*EngineInstance
-		TurretBanks []*TurretInstance
-		Control     *Control
+		Name    string
+		Cfg     *definitions.Ship
+		Health  *HealthComponent
+		Control *Control
 	}
 
-	Projectile struct {
+	Plane struct {
 		CircularCollisionPlugin
-		ProjectileID definitions.ProjectileID
-		Speed        float64
-		Range        float64
-		Damage       float64
-		PrevPosition *util.Vector2D
-		Parent       *Ship
 	}
 
 	// Caches (Each renderable type should have a cache, using inheretence where possible)

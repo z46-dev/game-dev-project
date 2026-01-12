@@ -33,17 +33,6 @@ type (
 		Outline                                color.Color
 		Definition                             *definitions.Ship
 		HealthRatio                            float64
-		Shields                                [][2]float64 // [][hardpoint health ratio, shield health ratio]
-		Engines                                []float64    // []engine health ratio
-		Turrets                                [][2]float64 // [][hardpoint health ratio, turret facing (absolute)]
-	}
-
-	ClientProjectile struct {
-		ID                                     uint64
-		Position, RealPosition                 *util.Vector2D
-		Size, RealSize, Rotation, RealRotation float64
-		ProjectileID                           definitions.ProjectileID
-		asset                                  *ebiten.Image
 	}
 
 	Game struct {
@@ -54,9 +43,7 @@ type (
 		lastInputFlags        uint8
 
 		Ships         map[uint64]*ClientShip
-		Projectiles   map[uint64]*ClientProjectile
 		ShipsMu       sync.RWMutex
-		ProjectilesMu sync.RWMutex
 
 		MousePosition *util.Vector2D
 	}

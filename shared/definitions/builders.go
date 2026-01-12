@@ -2,168 +2,16 @@ package definitions
 
 import "github.com/z46-dev/game-dev-project/util"
 
-// Projectile Builders
-
-func NewProjectile(id ProjectileID, name string, speed, range_, damage float64, reloadTicks int) (p *Projectile) {
-	p = &Projectile{
-		ID:              id,
-		Name:            name,
-		Speed:           speed,
-		Range:           range_,
-		ImpactDamage:    damage,
-		Explosion:       nil,
-		MovementPattern: MovementTypeLinear,
-		ReloadTicks:     reloadTicks,
-	}
-
-	ProjectileConfigs[id] = p
-	return
-}
-
-func (pr *Projectile) SetExplosion(explodesWhenOutOfRange bool, radius, epicenterDamage float64, damageFallsOff bool) (p *Projectile) {
-	pr.Explosion = &GenericExplosionCfg{
-		ExplodesWhenOutOfRange: explodesWhenOutOfRange,
-		Radius:                 radius,
-		EpicenterDamage:        epicenterDamage,
-		DamageFallsOff:         damageFallsOff,
-	}
-
-	p = pr
-	return
-}
-
-func (pr *Projectile) SetSineMovement(amplitude, frequency float64) (p *Projectile) {
-	pr.MovementPattern = MovementTypeSineWave
-	pr.SineMovementAmplitude = amplitude
-	pr.SineMovementFrequency = frequency
-
-	p = pr
-	return
-}
-
-func (pr *Projectile) SetHomingMovement(turnRate float64) (p *Projectile) {
-	pr.MovementPattern = MovementTypeHoming
-	pr.HomingMovementTurnRate = turnRate
-
-	p = pr
-	return
-}
-
-// Weapon Deployer Builder
-
-func NewGun(relativePosition *util.Vector2D, direction float64, barrelLength, barrelWidth float64) (wd *Gun) {
-	wd = &Gun{
-		RelativePosition: relativePosition,
-		Direction:        direction,
-		BarrelLength:     barrelLength,
-		BarrelWidth:      barrelWidth,
-	}
-
-	return
-}
-
-// Generic Hardpoint embedded funcs
-
-func (hp *Hardpoint) SetRepairable(reparable bool) (h *Hardpoint) {
-	hp.CanBeRepaired = reparable
-	h = hp
-	return
-}
-
-func (hp *Hardpoint) SetRebuildConfig(rebuildDelayTicks int, rebuildHealthRatio float64) (h *Hardpoint) {
-	hp.Rebuild = &RebirthConfig{
-		RebirthDelayTicks:  rebuildDelayTicks,
-		RebirthHealthRatio: rebuildHealthRatio,
-	}
-
-	h = hp
-	return
-}
-
-func (hp *Hardpoint) SetDrawLayer(layer HardpointDrawLayer) (h *Hardpoint) {
-	hp.DrawLayer = layer
-	h = hp
-	return
-}
-
-// Turret Weapon Bank Builder
-
-func NewTurretWeaponBank(position *util.Vector2D, size, direction, hullHealth float64, effectiveArc *util.Vector2D, traverseRate float64, projectile *Projectile) (twb *Turret) {
-	twb = &Turret{}
-	twb.Position = position
-	twb.Size = size
-	twb.Direction = direction
-	twb.HullHealth = hullHealth
-	twb.Guns = []*Gun{}
-	twb.EffectiveArc = effectiveArc
-	twb.TraverseRate = traverseRate
-	twb.DrawLayer = HardpointDrawLayerAboveHull
-	twb.Projectile = projectile
-	twb.Multishot = 1
-	twb.MultishotInterval = 0
-	twb.Spread = util.Vector(0, 0)
-
-	return
-}
-
-func (twb *Turret) AddWeapon(deployer ...*Gun) (t *Turret) {
-	twb.Guns = append(twb.Guns, deployer...)
-	t = twb
-	return
-}
-
-// Shield Generator Builder
-
-func NewShieldGenerator(position *util.Vector2D, size, direction, hullHealth, shieldRadius, shieldHealth, shieldRegen float64) (sg *ShieldGenerator) {
-	sg = &ShieldGenerator{}
-	sg.Position = position
-	sg.Size = size
-	sg.Direction = direction
-	sg.HullHealth = hullHealth
-	sg.ShieldRadius = shieldRadius
-	sg.ShieldHealth = shieldHealth
-	sg.ShieldRegen = shieldRegen
-	sg.ShieldRebirth = nil
-	sg.DrawLayer = HardpointDrawLayerAboveHull
-
-	return
-}
-
-func (sg *ShieldGenerator) SetShieldRebirthConfig(rebirthDelayTicks int, rebirthHealthRatio float64) (s *ShieldGenerator) {
-	sg.ShieldRebirth = &RebirthConfig{
-		RebirthDelayTicks:  rebirthDelayTicks,
-		RebirthHealthRatio: rebirthHealthRatio,
-	}
-
-	s = sg
-	return
-}
-
-// Engine Builder
-
-func NewEngine(position *util.Vector2D, size, direction, hullHealth float64) (e *Engine) {
-	e = &Engine{}
-	e.Position = position
-	e.Size = size
-	e.Direction = direction
-	e.HullHealth = hullHealth
-	e.DrawLayer = HardpointDrawLayerAboveHull
-
-	return
-}
-
 // Ship Builder
 
-func NewShip(id ShipID, name string, classification ShipClassification, hullPath []*util.Vector2D, size float64) (s *Ship) {
+func NewShip(id ShipID, name string, classification ShipClassification, hullPath []*util.Vector2D, size float64, assetName string) (s *Ship) {
 	s = &Ship{
 		ID:             id,
 		Name:           name,
 		Classification: classification,
 		HullPath:       hullPath,
 		Size:           size,
-		Shields:        []*ShieldGenerator{},
-		Engines:        []*Engine{},
-		TurretBanks:    []*Turret{},
+		AssetName:      assetName,
 	}
 
 	ShipConfigs[id] = s
@@ -172,26 +20,187 @@ func NewShip(id ShipID, name string, classification ShipClassification, hullPath
 
 func (s *Ship) SetHullProps(health, speed, turnSpeed float64) (sh *Ship) {
 	s.HullHealth = health
-	s.Speed = speed
-	s.TurnSpeed = turnSpeed
+	s.Speed = speed / 2
+	s.TurnSpeed = turnSpeed / 150000
 	sh = s
 	return
 }
 
-func (s *Ship) AddShieldGenerator(shield ...*ShieldGenerator) (sh *Ship) {
-	s.Shields = append(s.Shields, shield...)
-	sh = s
+// Plane Builder
+
+func NewPlane(id PlaneID, name string, size float64, assetName string) (p *Plane) {
+	p = &Plane{
+		ID:        id,
+		Name:      name,
+		AssetName: assetName,
+		Size:      size,
+	}
+
+	PlaneConfigs[id] = p
 	return
 }
 
-func (s *Ship) AddEngine(engine ...*Engine) (sh *Ship) {
-	s.Engines = append(s.Engines, engine...)
-	sh = s
+func (p *Plane) SetFlightProps(health, speed, turnSpeed float64) (pl *Plane) {
+	p.Health = health
+	p.Speed = speed
+	p.TurnSpeed = turnSpeed
+	pl = p
 	return
 }
 
-func (s *Ship) AddTurretWeaponBank(bank ...*Turret) (sh *Ship) {
-	s.TurretBanks = append(s.TurretBanks, bank...)
-	sh = s
+// Ammo Builders
+
+func NewDamageSource(fullDamage, penetration, fireChance float64) DamageSource {
+	return DamageSource{
+		FullDamage:  fullDamage,
+		Penetration: penetration,
+		FireChance:  fireChance,
+	}
+}
+
+func NewEllipticalReticle(distance, width, height float64) EllipticalReticle {
+	return EllipticalReticle{
+		Distance: distance,
+		Width:    width,
+		Height:   height,
+	}
+}
+
+func NewConeReticle(length, baseWidth, endWidth float64) ConeReticle {
+	return ConeReticle{
+		Length:    length,
+		BaseWidth: baseWidth,
+		EndWidth:  endWidth,
+	}
+}
+
+func NewSkipReticle(length, baseWidth, endWidth float64, numSkips int) SkipReticle {
+	return SkipReticle{
+		Length:    length,
+		BaseWidth: baseWidth,
+		EndWidth:  endWidth,
+		NumSkips:  numSkips,
+	}
+}
+
+func NewPlaneAmmo(number int) (ammo *PlaneAmmo) {
+	ammo = &PlaneAmmo{
+		Number: number,
+	}
+
 	return
+}
+
+func (a *PlaneAmmo) WithRocket(rocket *PlaneAmmoRocket) *PlaneAmmo {
+	a.Rocket = rocket
+	return a
+}
+
+func (a *PlaneAmmo) WithTorpedo(torpedo *PlaneAmmoTorpedo) *PlaneAmmo {
+	a.Torpedo = torpedo
+	return a
+}
+
+func (a *PlaneAmmo) WithBomb(bomb *PlaneAmmoBomb) *PlaneAmmo {
+	a.Bomb = bomb
+	return a
+}
+
+func (a *PlaneAmmo) WithSkipBomb(skipBomb *PlaneAmmoSkipBomb) *PlaneAmmo {
+	a.SkipBomb = skipBomb
+	return a
+}
+
+func (a *PlaneAmmo) WithMine(mine *PlaneAmmoMine) *PlaneAmmo {
+	a.Mine = mine
+	return a
+}
+
+func NewPlaneAmmoRocket(damage DamageSource, reticle EllipticalReticle, speed float64) *PlaneAmmoRocket {
+	return &PlaneAmmoRocket{
+		DamageSource:      damage,
+		EllipticalReticle: reticle,
+		Speed:             speed,
+	}
+}
+
+func NewPlaneAmmoTorpedo(damage DamageSource, reticle ConeReticle, speed, floodingChance float64) *PlaneAmmoTorpedo {
+	return &PlaneAmmoTorpedo{
+		DamageSource:   damage,
+		ConeReticle:    reticle,
+		Speed:          speed,
+		FloodingChance: floodingChance,
+	}
+}
+
+func NewPlaneAmmoBomb(damage DamageSource, reticle EllipticalReticle, fallTime float64) *PlaneAmmoBomb {
+	return &PlaneAmmoBomb{
+		DamageSource:      damage,
+		EllipticalReticle: reticle,
+		FallTime:          fallTime,
+	}
+}
+
+func NewPlaneAmmoSkipBomb(damage DamageSource, reticle SkipReticle, fallTime float64) *PlaneAmmoSkipBomb {
+	return &PlaneAmmoSkipBomb{
+		DamageSource: damage,
+		SkipReticle:  reticle,
+		FallTime:     fallTime,
+	}
+}
+
+func NewPlaneAmmoMine(damage DamageSource, reticle EllipticalReticle, activationDelay, duration int) *PlaneAmmoMine {
+	return &PlaneAmmoMine{
+		DamageSource:      damage,
+		EllipticalReticle: reticle,
+		ActivationDelay:   activationDelay,
+		Duration:          duration,
+	}
+}
+
+// Squadron Builder
+
+func NewSquadron(plane *Plane, ammo *PlaneAmmo) (s *Squadron) {
+	s = &Squadron{
+		Plane: plane,
+	}
+
+	if ammo != nil {
+		s.Ammo = *ammo
+	}
+
+	return
+}
+
+func (s *Squadron) WithAmmo(ammo *PlaneAmmo) *Squadron {
+	if ammo != nil {
+		s.Ammo = *ammo
+		return s
+	}
+
+	s.Ammo = PlaneAmmo{}
+	return s
+}
+
+func (s *Squadron) SetStrikeProps(isRTS, isTactical bool, squadronSize, attacksWith, cooldownBetweenStrikes int) *Squadron {
+	s.IsRTS = isRTS
+	s.IsTactical = isTactical
+	s.SquadronSize = squadronSize
+	s.AttacksWith = attacksWith
+	s.CooldownBetweenStrikes = cooldownBetweenStrikes
+	return s
+}
+
+func (s *Squadron) SetHangarProps(hangarSize, planePrepTime, planeLaunchTime, planeRecoveryTime, planeRegenerationTime int) *Squadron {
+	s.HangarSize = hangarSize
+	s.PlanePrepTime = planePrepTime
+	s.PlaneLaunchTime = planeLaunchTime
+	s.PlaneRecoveryTime = planeRecoveryTime
+	s.PlaneRegenerationTime = planeRegenerationTime
+	return s
+}
+
+func (s *Ship) AddSquadron(squadron *Squadron) *Ship {
+	s.Squadrons = append(s.Squadrons, squadron)
+	return s
 }

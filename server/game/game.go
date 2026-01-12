@@ -2,6 +2,7 @@ package game
 
 import (
 	"math"
+	"math/rand/v2"
 	"time"
 
 	"github.com/z46-dev/game-dev-project/shared/definitions"
@@ -11,23 +12,29 @@ import (
 
 func NewGame() (g *Game) {
 	g = &Game{
-		Ships:                 util.NewSafeStorage[*Ship](),
-		Projectiles:           util.NewSafeStorage[*Projectile](),
-		spatialHash:           util.NewSpatialHash[CollidableObject](),
-		hardpointsSpatialHash: util.NewSpatialHash[*HardpointInstance](),
-		ShipCache:             make(map[uint64]*ShipCache),
-		ProjectileCache:       make(map[uint64]*GenericObjectCache),
-		Players:               make(map[int]*Player),
-		Factions:              make(map[uint64]*Faction),
+		Ships:           util.NewSafeStorage[*Ship](),
+		Planes:          util.NewSafeStorage[*Plane](),
+		spatialHash:     util.NewSpatialHash[CollidableObject](),
+		ShipCache:       make(map[uint64]*ShipCache),
+		ProjectileCache: make(map[uint64]*GenericObjectCache),
+		Players:         make(map[int]*Player),
+		Factions:        make(map[uint64]*Faction),
 	}
 
 	return
 }
 
 func (g *Game) Init() {
+	var botChoices []*definitions.Ship = []*definitions.Ship{
+		definitions.ShipChkalov,
+		definitions.ShipColossus,
+		definitions.ShipEnterprise,
+		definitions.ShipParseval,
+	}
+
 	var npcFaction *Faction = NewFaction(g, "NPCs")
-	for range 3 {
-		var ship *Ship = NewShip(g, util.RandomRadius(4096), definitions.ShipHindenburg, npcFaction)
+	for range 5 {
+		var ship *Ship = NewShip(g, util.RandomRadius(4096), botChoices[rand.IntN(len(botChoices))], npcFaction)
 		g.Ships.Add(ship)
 	}
 }
@@ -37,21 +44,20 @@ func (g *Game) Update() {
 
 	// Update spatial hash
 	g.spatialHash.Clear()
-	g.hardpointsSpatialHash.Clear()
 	for _, f := range g.Factions {
 		f.Update()
 	}
 
 	// Flush storages
 	g.Ships.Flush()
-	g.Projectiles.Flush()
+	g.Planes.Flush()
 
 	// Update ships & projectiles (Update & Insert phase)
 	g.Ships.ForEach(func(s *Ship) {
 		s.Update()
 	})
 
-	g.Projectiles.ForEach(func(p *Projectile) {
+	g.Planes.ForEach(func(p *Plane) {
 		p.Update()
 	})
 
@@ -61,7 +67,7 @@ func (g *Game) Update() {
 		s.Think()
 	})
 
-	g.Projectiles.ForEach(func(p *Projectile) {
+	g.Planes.ForEach(func(p *Plane) {
 		p.Collide()
 	})
 

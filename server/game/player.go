@@ -9,7 +9,7 @@ import (
 func NewPlayer(game *Game, socket *web.Socket, name string) (p *Player) {
 	p = &Player{
 		Socket: socket,
-		Body:   NewShip(game, util.RandomRadius(128), definitions.ShipTiger, NewFaction(game, name)),
+		Body:   NewShip(game, util.RandomRadius(128), definitions.ShipColossus, NewFaction(game, name)),
 		Camera: NewCamera(2400),
 	}
 

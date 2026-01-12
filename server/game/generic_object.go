@@ -17,7 +17,7 @@ func NewGameObject(game *Game, position *util.Vector2D, f *Faction) (o *GenericO
 	o.Velocity = util.Vector(0, 0)
 	o.Size = 32
 	o.Rotation = 0
-	o.Friction = 0.9
+	o.Friction = 0.95
 	o.Density = 1
 	o.Pushability = 1
 	o.Faction = f

@@ -3,90 +3,113 @@ package definitions
 import "github.com/z46-dev/game-dev-project/util"
 
 type (
-	EntityType                uint8 // Represents the type of an entity
-	ProjectileMovementPattern uint8 // Represents the movement pattern of a projectile
-	HardpointDrawLayer        uint8 // Represents the draw layer of a weapon bank on a ship
-	ShipClassification        uint8 // Represents the classification of a ship
-	ShipID                    int   // Represents the key of a ship definition
-	ProjectileID              int   // Represents the key of a projectile definition
-
-	GenericExplosionCfg struct {
-		ExplodesWhenOutOfRange bool    // Whether the projectile explodes when it reaches its maximum range or only on impact
-		Radius                 float64 // The radius of the explosion
-		EpicenterDamage        float64 // The damage dealt at the center of the explosion
-		DamageFallsOff         bool    // Whether the damage falls off with distance from the epicenter f(x) = e/exp(x), 1 <= x <= radius
-	}
-
-	Projectile struct {
-		ID                     ProjectileID              // The unique identifier for the projectile
-		Name                   string                    // The name of the projectile
-		Speed                  float64                   // The speed of the projectile
-		Range                  float64                   // The maximum range of the projectile
-		ImpactDamage           float64                   // The damage dealt on impact
-		Explosion              *GenericExplosionCfg      // The explosion configuration, if any
-		MovementPattern        ProjectileMovementPattern // The movement pattern of the projectile
-		SineMovementAmplitude  float64                   // The amplitude of sine wave movement (if applicable)
-		SineMovementFrequency  float64                   // The frequency of sine wave movement (if applicable)
-		HomingMovementTurnRate float64                   // The turn rate for homing movement (if applicable)
-		ReloadTicks            int                       // Interval in ticks between shots
-	}
-
-	RebirthConfig struct {
-		RebirthDelayTicks  int     // The delay in ticks before the object or shield is re-build or regenerated
-		RebirthHealthRatio float64 // The ratio of max health to restore when the object or shield is rebuilt or regenerated (0.0 - 1.0)
-	}
-
-	Hardpoint struct {
-		Position      *util.Vector2D     // Position relative to the parent ship's center (normalized, -1 to 1)
-		Size          float64            // Size of the hardpoint relative to the ship size (0.0 - 1.0)
-		Direction     float64            // Facing direction in radians
-		HullHealth    float64            // The health of the hardpoint's hull
-		CanBeRepaired bool               // Whether the hardpoint can be repaired if damaged (different from if it can be re-built after being destroyed)
-		Rebuild       *RebirthConfig     // The rebuild configuration, nil means no rebuild. If not nil, the hardpoint can be rebuilt after being destroyed after some time.
-		DrawLayer     HardpointDrawLayer // The draw layer of the hardpoint
-	}
-
-	Gun struct {
-		RelativePosition *util.Vector2D // Position relative to the parent object's center (normalized, -1 to 1)
-		Direction        float64        // Facing direction in radians
-		BarrelLength     float64        // The length of the barrel from the relative position relative to the parent object's size
-		BarrelWidth      float64        // The width of the barrel relative to the parent object's size. Projectiles will be this real size when spawned.
-	}
-
-	Turret struct {
-		Hardpoint                        // The hardpoint this weapon bank is mounted on
-		Guns              []*Gun         // The weapons in this bank
-		Projectile        *Projectile    // The projectile configuration
-		Multishot         int            // Number of projectiles fired per shot
-		MultishotInterval int            // Ticks between each projectile in a multishot
-		Spread            *util.Vector2D // Spread in radians for random inaccuracy (x: horizontal, y: vertical). Will be calculated like so: rand(-spread value / 2, spread value / 2)
-		EffectiveArc      *util.Vector2D // The effective firing arc (x: left limit, y: right limit) in radians relative to the facing direction. A nil value implies a full 360 degree arc.
-		TraverseRate      float64        // The rate at which the turret can rotate in radians per tick
-	}
-
-	ShieldGenerator struct {
-		Hardpoint
-		ShieldRadius  float64        // The maximum radius of the shield
-		ShieldHealth  float64        // The maximum shield health
-		ShieldRegen   float64        // The amount of shield health regenerated per tick
-		ShieldRebirth *RebirthConfig // The rebirth configuration for the shield, nil means no rebirth. If not nil, the shield will regenerate from 0 health after some time fully depleted.
-	}
-
-	Engine struct {
-		Hardpoint
-	}
+	EntityType         uint8 // Represents the type of an entity
+	ShipClassification uint8 // Represents the classification of a ship
+	SquadronType       uint8 // Represents the type of squadron
+	ShipID             int   // Represents the key of a ship definition
+	PlaneID            int   // Represents the key of a plane definition
 
 	Ship struct {
 		ID             ShipID             // The unique identifier for the ship
 		Name           string             // The name of the ship
 		Classification ShipClassification // The classification of the ship
+		AssetName      string             // The name of the asset used for rendering the ship
 		HullPath       []*util.Vector2D   // The polygonal hull of the ship (will be normalized, -1 to 1)
 		Size           float64            // The size of the ship (used for scaling the hull and hardpoints)
 		HullHealth     float64            // The health of the ship's hull
 		Speed          float64            // The speed of the ship
 		TurnSpeed      float64            // The maximum turn speed of the ship in radians per tick
-		Shields        []*ShieldGenerator // The shield generators on the ship
-		Engines        []*Engine          // The engines on the ship
-		TurretBanks    []*Turret          // The turret weapon banks on the ship
+		Squadrons      []*Squadron        // The squadrons carried by the ship
+	}
+
+	EllipticalReticle struct {
+		Distance float64 // The distance from the planes to the center of the reticle
+		Width    float64 // The width of the elliptical reticle
+		Height   float64 // The height of the elliptical reticle
+	}
+
+	ConeReticle struct {
+		Length    float64 // The length of the cone reticle
+		BaseWidth float64 // The base width of the cone reticle
+		EndWidth  float64 // The end width of the cone reticle
+	}
+
+	SkipReticle struct {
+		Length    float64 // The length of the skip reticle
+		BaseWidth float64 // The base width of the skip reticle
+		EndWidth  float64 // The end width of the skip reticle
+		NumSkips  int     // The number of skips the bomb will make
+	}
+
+	DamageSource struct {
+		FullDamage  float64 // The full damage
+		Penetration float64 // The penetration value
+		FireChance  float64 // The chance to start a fire (0.0 - 1.0)
+	}
+
+	PlaneAmmoRocket struct {
+		DamageSource
+		EllipticalReticle
+		Speed float64 // The speed of the rocket
+	}
+
+	PlaneAmmoTorpedo struct {
+		DamageSource
+		ConeReticle
+		Speed          float64 // The speed of the torpedo
+		FloodingChance float64 // The chance to cause flooding (0.0 - 1.0)
+	}
+
+	PlaneAmmoBomb struct {
+		DamageSource
+		EllipticalReticle
+		FallTime float64 // The time it takes for the bomb to fall to the target
+	}
+
+	PlaneAmmoSkipBomb struct {
+		DamageSource
+		SkipReticle
+		FallTime float64 // The time it takes for the bomb to fall to the target
+	}
+
+	PlaneAmmoMine struct {
+		DamageSource
+		EllipticalReticle
+		ActivationDelay int // The delay in ticks before the mine becomes active
+		Duration        int // The duration in ticks the mine remains active
+	}
+
+	PlaneAmmo struct {
+		Number   int // The number of ammo available
+		Rocket   *PlaneAmmoRocket
+		Torpedo  *PlaneAmmoTorpedo
+		Bomb     *PlaneAmmoBomb
+		SkipBomb *PlaneAmmoSkipBomb
+		Mine     *PlaneAmmoMine
+	}
+
+	Plane struct {
+		ID        PlaneID // The unique identifier for the plane
+		Name      string  // The name of the plane
+		AssetName string  // The name of the asset used for rendering the plane
+		Size      float64 // The size of the plane (used for scaling the hull and hardpoints)
+		Health    float64 // The health of the plane
+		Speed     float64 // The speed of the plane
+		TurnSpeed float64 // The maximum turn speed of the plane in radians per tick
+	}
+
+	Squadron struct {
+		Plane                  *Plane // The plane type used in the squadron
+		Ammo                   PlaneAmmo
+		HangarSize             int  // The number of planes in reserves at the start of the ship's lifecycle
+		IsRTS                  bool // Whether the squadron is RTS controlled or manually controlled
+		IsTactical             bool // Do the planes not return to the carrier?
+		SquadronSize           int  // Number of planes launched at once
+		AttacksWith            int  // Number of planes that attack a target at once (only applicable for manual control)
+		CooldownBetweenStrikes int  // Cooldown in ticks between strikes (only applicable for manual control)
+		PlanePrepTime          int  // Cooldown in ticks per plane on the carrier deck before a squad can be launched
+		PlaneLaunchTime        int  // Time in ticks it takes to launch each plane
+		PlaneRecoveryTime      int  // Time in ticks it takes to recover each plane
+		PlaneRegenerationTime  int  // Time in ticks it takes to regenerate a single plane in the hangar (if set 0, no regeneration occurs)
 	}
 )

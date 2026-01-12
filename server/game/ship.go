@@ -5,12 +5,11 @@ import (
 	"github.com/z46-dev/game-dev-project/util"
 )
 
-func NewHealth(health float64, canBeRepaired bool, rebuild *definitions.RebirthConfig) (hc *HealthComponent) {
+func NewHealth(health float64, canBeRepaired bool) (hc *HealthComponent) {
 	hc = &HealthComponent{
 		MaxHealth:     health,
 		Health:        health,
 		CanBeRepaired: canBeRepaired,
-		Rebuild:       rebuild,
 	}
 	return
 }
@@ -40,21 +39,9 @@ func NewShip(g *Game, position *util.Vector2D, def *definitions.Ship, f *Faction
 	s.Cfg = def
 	s.Name = s.Cfg.Name
 	s.Size = s.Cfg.Size
-	s.Health = NewHealth(s.Cfg.HullHealth, true, nil)
+	s.Health = NewHealth(s.Cfg.HullHealth, true)
 	s.Polygon = util.NewPolygon(s.Cfg.HullPath, s.Position, s.Size/2, s.Rotation)
 	s.Control = NewControl(g, s)
-
-	for _, shieldDef := range def.Shields {
-		s.Shields = append(s.Shields, NewShieldGenerator(s, shieldDef))
-	}
-
-	for _, engineDef := range def.Engines {
-		s.Engines = append(s.Engines, NewEngine(s, engineDef))
-	}
-
-	for _, turretDef := range def.TurretBanks {
-		s.TurretBanks = append(s.TurretBanks, NewTurret(s, turretDef))
-	}
 
 	return
 }
@@ -75,18 +62,6 @@ func (s *Ship) Update() {
 	s.Position.Add(s.Velocity)
 	s.Velocity.Scale(s.Friction)
 	s.Insert()
-
-	for _, turret := range s.TurretBanks {
-		turret.Update()
-	}
-
-	for _, shield := range s.Shields {
-		shield.Update()
-	}
-
-	for _, engine := range s.Engines {
-		engine.Update()
-	}
 }
 
 func (s *Ship) Collide() {
